@@ -1315,7 +1315,7 @@ export default function App() {
       boxShadow: "0 18px 50px rgba(0,0,0,.24)",
       padding: 16,
       overflowY: "auto",
-      maxHeight: 620,
+      maxHeight: 677,
     },
     drawingIndicator: {
       background: "#1a2236",
