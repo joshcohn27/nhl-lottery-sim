@@ -1356,7 +1356,7 @@ export default function App() {
     },
     draftBoardWrap: {
       overflowY: "auto",
-      maxHeight: 650,
+      maxHeight: 783,
     },
   };
 
