@@ -1425,6 +1425,9 @@ export default function App() {
 
       <header style={S.header}>
         <h1 style={S.h1}>2026 NHL Draft Lottery Simulator</h1>
+        <div style={S.sub}>
+          Simulate the 2026 NHL Draft Lottery, search NHL draft lottery combos, and build a full first-round NHL mock draft.
+        </div>
         {/* <div style={S.sub}>
           {csvStatus} · {prospectStatus}
         </div> */}
