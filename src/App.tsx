@@ -434,9 +434,9 @@ function BallSlot({ idx }: { idx: number }) {
 export default function App() {
   const pickLockRef = useRef(false);
 
-  useEffect(() => {
-    document.title = "NHL Mock Draft Simulator";
-  }, []);
+  // useEffect(() => {
+  //   document.title = "NHL Mock Draft Simulator";
+  // }, []);
 
   const [comboRows, setComboRows] = useState<LotteryComboRow[]>([]);
   const [csvStatus, setCsvStatus] = useState("Loading NHL combination table...");
