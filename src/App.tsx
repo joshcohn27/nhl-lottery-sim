@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
-interface LotteryTeam {
+interface StandingTeam {
+  standingRank: number;
+  pick: number;
   name: string;
+  lottery: boolean;
   odds: number;
   combos: number;
   protected?: { top: number; transferTo: string };
-}
-
-interface NonLotteryTeam {
-  name: string;
-  origPick: number;
 }
 
 interface Prospect {
@@ -18,6 +16,7 @@ interface Prospect {
   name: string;
   pos: string;
   league: string;
+  team?: string;
 }
 
 interface DraftPick {
@@ -45,48 +44,11 @@ type ProspectPositionFilter = "all" | "centers" | "wingers" | "forwards" | "defe
 
 const COMBOS_CSV_PATH = "/mock/combos.csv";
 const PROSPECTS_CSV_PATH = "/mock/prospects.csv";
+const INVERSE_STANDINGS_CSV_PATH = "/mock/inverse_standings.csv";
 const REDRAW_COMBO = "11,12,13,14";
 
 const REAL_PICK_1_BALLS = [7, 2, 11, 12];
 const REAL_PICK_2_BALLS = [11, 4, 3, 7];
-
-const LOTTERY_TEAMS: LotteryTeam[] = [
-  { name: "Vancouver", odds: 18.5, combos: 185 },
-  { name: "Chicago", odds: 13.5, combos: 135 },
-  { name: "NY Rangers", odds: 11.5, combos: 115 },
-  { name: "Calgary", odds: 9.5, combos: 95 },
-  { name: "Toronto", odds: 8.5, combos: 85, protected: { top: 5, transferTo: "Boston" } },
-  { name: "Seattle", odds: 7.5, combos: 75 },
-  { name: "Winnipeg", odds: 6.5, combos: 65 },
-  { name: "Florida", odds: 6.0, combos: 60 },
-  { name: "San Jose", odds: 5.0, combos: 50 },
-  { name: "Nashville", odds: 3.5, combos: 35 },
-  { name: "St. Louis", odds: 3.0, combos: 30 },
-  { name: "New Jersey", odds: 2.5, combos: 25 },
-  { name: "NY Islanders", odds: 2.0, combos: 20 },
-  { name: "Columbus", odds: 1.5, combos: 15 },
-  { name: "St. Louis (DET)", odds: 0.5, combos: 5 },
-  { name: "Washington", odds: 0.5, combos: 5 },
-];
-
-const NON_LOTTERY: NonLotteryTeam[] = [
-  { name: "Los Angeles", origPick: 17 },
-  { name: "Washington (ANA)", origPick: 18 },
-  { name: "Utah", origPick: 19 },
-  { name: "San Jose (EDM)", origPick: 20 },
-  { name: "Philadelphia", origPick: 21 },
-  { name: "Pittsburgh", origPick: 22 },
-  { name: "Boston", origPick: 23 },
-  { name: "Seattle (TBL)", origPick: 24 },
-  { name: "NY Rangers (DAL)", origPick: 25 },
-  { name: "Calgary (VGK)", origPick: 26 },
-  { name: "Buffalo", origPick: 27 },
-  { name: "Vancouver (MIN)", origPick: 28 },
-  { name: "Montreal", origPick: 29 },
-  { name: "Carolina", origPick: 30 },
-  { name: "St. Louis (COL)", origPick: 31 },
-  { name: "Ottawa", origPick: 32 },
-];
 
 const BALL_COLORS: [string, string][] = [
   ["#c0392b", "#e74c3c"],
@@ -169,17 +131,51 @@ function parseProspectsCsv(csv: string): Prospect[] {
     .slice(1)
     .filter(Boolean)
     .map((line) => {
-      const [rank, name, pos, league] = splitCsvLine(line);
+      const [rank, name, pos, league, team] = splitCsvLine(line);
 
       return {
         rank: Number(rank),
         name,
         pos,
         league: league ?? "",
+        team: team || undefined,
       };
     })
     .filter((prospect) => Number.isFinite(prospect.rank) && prospect.name)
     .sort((a, b) => a.rank - b.rank);
+}
+
+
+function parseInverseStandingsCsv(csv: string): StandingTeam[] {
+  return csv
+    .trim()
+    .split(/\r?\n/)
+    .slice(1)
+    .filter(Boolean)
+    .map((line) => {
+      const [standingRank, pick, team, lottery, odds, combos, protectedTop, transferTo] = splitCsvLine(line);
+      const isLottery = lottery.trim().toLowerCase() === "true" || lottery.trim().toLowerCase() === "yes";
+
+      const parsed: StandingTeam = {
+        standingRank: Number(standingRank),
+        pick: Number(pick),
+        name: team,
+        lottery: isLottery,
+        odds: odds ? Number(odds) : 0,
+        combos: combos ? Number(combos) : 0,
+      };
+
+      if (protectedTop && transferTo) {
+        parsed.protected = {
+          top: Number(protectedTop),
+          transferTo,
+        };
+      }
+
+      return parsed;
+    })
+    .filter((team) => Number.isFinite(team.standingRank) && Number.isFinite(team.pick) && team.name)
+    .sort((a, b) => a.pick - b.pick);
 }
 
 function prospectMatchesPositionFilter(prospect: Prospect, filter: ProspectPositionFilter): boolean {
@@ -258,8 +254,8 @@ function resolveCombo(comboRows: LotteryComboRow[], balls: number[]): LotteryCom
   return comboRows.find((row) => row.balls.join(",") === sortedKey) ?? null;
 }
 
-function resolveProtection(teamName: string, pickNum: number): DraftPick {
-  const td = LOTTERY_TEAMS.find((t) => t.name === teamName);
+function resolveProtection(teamName: string, pickNum: number, lotteryTeams: StandingTeam[]): DraftPick {
+  const td = lotteryTeams.find((t) => t.name === teamName);
   if (!td?.protected) return { team: teamName, pick: pickNum, note: "", player: null };
 
   const { top, transferTo } = td.protected;
@@ -282,14 +278,17 @@ function escapeHtml(value: string | number | null | undefined): string {
     .replace(/'/g, "&#039;");
 }
 
-
-function getLotteryRank(teamName: string): number {
-  return LOTTERY_TEAMS.findIndex((team) => team.name === teamName) + 1;
+function formatProspectMeta(prospect: Prospect): string {
+  return [prospect.pos, prospect.league, prospect.team].filter(Boolean).join(" · ");
 }
 
-function getHighestAllowedPick(teamName: string): number {
-  const rank = getLotteryRank(teamName);
-  if (rank <= 0) return 16;
+function getLotteryRank(teamName: string, lotteryTeams: StandingTeam[]): number {
+  return lotteryTeams.findIndex((team) => team.name === teamName) + 1;
+}
+
+function getHighestAllowedPick(teamName: string, lotteryTeams: StandingTeam[]): number {
+  const rank = getLotteryRank(teamName, lotteryTeams);
+  if (rank <= 0) return lotteryTeams.length || 16;
 
   return Math.max(1, rank - 10);
 }
@@ -302,20 +301,27 @@ function getAssignedTeams(assignments: LotteryAssignment[]): Set<string> {
   return new Set(assignments.map((assignment) => assignment.team));
 }
 
-function getAwardedPick(teamName: string, targetPick: number, occupiedPicks: Set<number>): number {
-  const highestAllowedPick = getHighestAllowedPick(teamName);
+function getAwardedPick(
+  teamName: string,
+  targetPick: number,
+  occupiedPicks: Set<number>,
+  lotteryTeams: StandingTeam[]
+): number {
+  const highestAllowedPick = getHighestAllowedPick(teamName, lotteryTeams);
+  const lastLotteryPick = lotteryTeams.length || 16;
   const firstPossiblePick = Math.max(targetPick, highestAllowedPick);
 
-  for (let pick = firstPossiblePick; pick <= 16; pick++) {
+  for (let pick = firstPossiblePick; pick <= lastLotteryPick; pick++) {
     if (!occupiedPicks.has(pick)) return pick;
   }
 
   return firstPossiblePick;
 }
 
-function buildLotterySlots(assignments: LotteryAssignment[]): Record<number, string> {
+function buildLotterySlots(assignments: LotteryAssignment[], lotteryTeams: StandingTeam[]): Record<number, string> {
   const slots: Record<number, string> = {};
   const assignedTeams = getAssignedTeams(assignments);
+  const lastLotteryPick = lotteryTeams.length || 16;
 
   [...assignments]
     .sort((a, b) => a.pick - b.pick)
@@ -323,13 +329,13 @@ function buildLotterySlots(assignments: LotteryAssignment[]): Record<number, str
       slots[assignment.pick] = assignment.team;
     });
 
-  const remainingLotteryTeams = LOTTERY_TEAMS.map((team) => team.name).filter(
+  const remainingLotteryTeams = lotteryTeams.map((team) => team.name).filter(
     (teamName) => !assignedTeams.has(teamName)
   );
 
   let remainingIdx = 0;
 
-  for (let pick = 1; pick <= 16; pick++) {
+  for (let pick = 1; pick <= lastLotteryPick; pick++) {
     if (slots[pick]) continue;
 
     slots[pick] = remainingLotteryTeams[remainingIdx];
@@ -339,27 +345,33 @@ function buildLotterySlots(assignments: LotteryAssignment[]): Record<number, str
   return slots;
 }
 
-function getNextOpenLotteryPick(assignments: LotteryAssignment[]): number {
+function getNextOpenLotteryPick(assignments: LotteryAssignment[], lotteryTeams: StandingTeam[]): number {
   const occupiedPicks = getOccupiedPicks(assignments);
+  const lastLotteryPick = lotteryTeams.length || 16;
 
-  for (let pick = 1; pick <= 16; pick++) {
+  for (let pick = 1; pick <= lastLotteryPick; pick++) {
     if (!occupiedPicks.has(pick)) return pick;
   }
 
-  return 16;
+  return lastLotteryPick;
 }
 
-function getDefaultTeamForPick(assignments: LotteryAssignment[], pick: number): string | null {
-  return buildLotterySlots(assignments)[pick] ?? null;
+function getDefaultTeamForPick(
+  assignments: LotteryAssignment[],
+  pick: number,
+  lotteryTeams: StandingTeam[]
+): string | null {
+  return buildLotterySlots(assignments, lotteryTeams)[pick] ?? null;
 }
 
 function applyLotteryDrawAssignment(
   existingAssignments: LotteryAssignment[],
   winner: string,
-  targetPick: number
+  targetPick: number,
+  lotteryTeams: StandingTeam[]
 ): { assignments: LotteryAssignment[]; awardedPick: number; defaultLockedTeam: string | null } {
   const occupiedPicks = getOccupiedPicks(existingAssignments);
-  const awardedPick = getAwardedPick(winner, targetPick, occupiedPicks);
+  const awardedPick = getAwardedPick(winner, targetPick, occupiedPicks, lotteryTeams);
   const drawAssignment: LotteryAssignment = { team: winner, pick: awardedPick, source: "draw" };
   const withWinner = [...existingAssignments, drawAssignment];
 
@@ -367,7 +379,7 @@ function applyLotteryDrawAssignment(
     return { assignments: withWinner, awardedPick, defaultLockedTeam: null };
   }
 
-  const defaultLockedTeam = getDefaultTeamForPick(withWinner, targetPick);
+  const defaultLockedTeam = getDefaultTeamForPick(withWinner, targetPick, lotteryTeams);
 
   if (!defaultLockedTeam || getAssignedTeams(withWinner).has(defaultLockedTeam)) {
     return { assignments: withWinner, awardedPick, defaultLockedTeam: null };
@@ -442,6 +454,8 @@ export default function App() {
   const [csvStatus, setCsvStatus] = useState("Loading NHL combination table...");
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [prospectStatus, setProspectStatus] = useState("Loading prospects...");
+  const [standingTeams, setStandingTeams] = useState<StandingTeam[]>([]);
+  const [standingsStatus, setStandingsStatus] = useState("Loading inverse standings...");
 
   const [drawnBalls, setDrawnBalls] = useState<number[]>([]);
   const [currentDraw, setCurrentDraw] = useState(1);
@@ -499,6 +513,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    fetch(INVERSE_STANDINGS_CSV_PATH)
+      .then((res) => {
+        if (!res.ok) throw new Error("Inverse standings CSV not found");
+        return res.text();
+      })
+      .then((text) => {
+        const parsed = parseInverseStandingsCsv(text);
+        setStandingTeams(parsed);
+        setStandingsStatus(`Loaded ${parsed.length} inverse standings rows.`);
+      })
+      .catch(() => {
+        setStandingsStatus("Could not load inverse_standings.csv. Make sure inverse_standings.csv is in /public/mock.");
+      });
+  }, []);
+
+  useEffect(() => {
     if (!lookupOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -511,20 +541,30 @@ export default function App() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [lookupOpen]);
 
+  const lotteryTeams = useMemo(
+    () => standingTeams.filter((team) => team.lottery).sort((a, b) => a.pick - b.pick),
+    [standingTeams]
+  );
+
+  const nonLotteryTeams = useMemo(
+    () => standingTeams.filter((team) => !team.lottery).sort((a, b) => a.pick - b.pick),
+    [standingTeams]
+  );
+
   const sortedDrawn = useMemo(() => [...drawnBalls].sort((a, b) => a - b), [drawnBalls]);
 
   const aliveTeams = useMemo(() => {
     if (drawnBalls.length === 0 || drawnBalls.length >= 4 || lottoDone) {
-      return new Set(LOTTERY_TEAMS.map((t) => t.name));
+      return new Set(lotteryTeams.map((t) => t.name));
     }
 
     return getAliveTeams(comboRows, sortedDrawn);
-  }, [comboRows, drawnBalls.length, lottoDone, sortedDrawn]);
+  }, [comboRows, drawnBalls.length, lottoDone, lotteryTeams, sortedDrawn]);
 
   const possibleFourthBallsByTeam = useMemo(() => {
     if (drawnBalls.length !== 3 || lottoDone) return {};
     return getPossibleFourthBallsByTeam(comboRows, sortedDrawn);
-  }, [comboRows, drawnBalls.length, lottoDone, sortedDrawn]);
+  }, [comboRows, drawnBalls.length, lottoDone, lotteryTeams, sortedDrawn]);
 
   const comboDisplay = [0, 1, 2, 3]
     .map((i) => (sortedDrawn[i] !== undefined ? String(sortedDrawn[i]).padStart(2, "0") : "__"))
@@ -623,22 +663,22 @@ export default function App() {
     [draftActionDisabled, prospects]
   );
 
-  const currentTargetPick = useMemo(() => getNextOpenLotteryPick(lotteryAssignments), [lotteryAssignments]);
+  const currentTargetPick = useMemo(() => getNextOpenLotteryPick(lotteryAssignments, lotteryTeams), [lotteryAssignments, lotteryTeams]);
 
   const buildOrderFromLotteryAssignments = useCallback((assignments: LotteryAssignment[]) => {
-    const slots = buildLotterySlots(assignments);
+    const slots = buildLotterySlots(assignments, lotteryTeams);
     const order: DraftPick[] = [];
 
-    for (let pick = 1; pick <= 16; pick++) {
-      order.push(resolveProtection(slots[pick], pick));
-    }
-
-    NON_LOTTERY.forEach((team) => {
-      order.push({ team: team.name, pick: team.origPick, note: "", player: null });
+    lotteryTeams.forEach((team) => {
+      order.push(resolveProtection(slots[team.pick], team.pick, lotteryTeams));
     });
 
-    return order;
-  }, []);
+    nonLotteryTeams.forEach((team) => {
+      order.push({ team: team.name, pick: team.pick, note: "", player: null });
+    });
+
+    return order.sort((a, b) => a.pick - b.pick);
+  }, [lotteryTeams, nonLotteryTeams]);
 
   const finalizeLottery = useCallback(
     (assignments: LotteryAssignment[]) => {
@@ -688,11 +728,12 @@ export default function App() {
         return;
       }
 
-      const targetPick = getNextOpenLotteryPick(assignmentsBeforeDraw);
+      const targetPick = getNextOpenLotteryPick(assignmentsBeforeDraw, lotteryTeams);
       const { assignments, awardedPick, defaultLockedTeam } = applyLotteryDrawAssignment(
         assignmentsBeforeDraw,
         winner,
-        targetPick
+        targetPick,
+        lotteryTeams
       );
 
       if (draw === 1) {
@@ -707,7 +748,7 @@ export default function App() {
         );
 
         setTimeout(() => {
-          const nextPick = getNextOpenLotteryPick(assignments);
+          const nextPick = getNextOpenLotteryPick(assignments, lotteryTeams);
           setCurrentDraw(2);
           setDrawnBalls([]);
           setNewBallIdx(null);
@@ -730,11 +771,11 @@ export default function App() {
 
       finalizeLottery(assignments);
     },
-    [comboRows, finalizeLottery]
+    [comboRows, finalizeLottery, lotteryTeams]
   );
 
   const drawOneBall = useCallback(() => {
-    if (drawnBalls.length >= 4 || lottoDone || comboRows.length === 0) return;
+    if (drawnBalls.length >= 4 || lottoDone || comboRows.length === 0 || lotteryTeams.length === 0) return;
 
     const remaining = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].filter(
       (b) => !drawnBalls.includes(b)
@@ -748,10 +789,10 @@ export default function App() {
     if (newBalls.length === 4) {
       evaluateCombo(newBalls, currentDraw, pick1Winner, lotteryAssignments);
     }
-  }, [comboRows.length, currentDraw, drawnBalls, evaluateCombo, lottoDone, lotteryAssignments, pick1Winner]);
+  }, [comboRows.length, currentDraw, drawnBalls, evaluateCombo, lottoDone, lotteryAssignments, lotteryTeams.length, pick1Winner]);
 
   const simDraw = useCallback(() => {
-    if (lottoDone || comboRows.length === 0) return;
+    if (lottoDone || comboRows.length === 0 || lotteryTeams.length === 0) return;
 
     const balls = [...drawnBalls];
 
@@ -765,7 +806,7 @@ export default function App() {
     setDrawnBalls(balls);
     setNewBallIdx(null);
     evaluateCombo(balls, currentDraw, pick1Winner, lotteryAssignments);
-  }, [comboRows.length, currentDraw, drawnBalls, evaluateCombo, lottoDone, lotteryAssignments, pick1Winner]);
+  }, [comboRows.length, currentDraw, drawnBalls, evaluateCombo, lottoDone, lotteryAssignments, lotteryTeams.length, pick1Winner]);
 
   const resetLottery = useCallback(() => {
     pickLockRef.current = false;
@@ -791,7 +832,7 @@ export default function App() {
   }, []);
 
   const useRealResults = useCallback(() => {
-    if (comboRows.length === 0) return;
+    if (comboRows.length === 0 || lotteryTeams.length === 0) return;
 
     resetLottery();
 
@@ -814,7 +855,7 @@ export default function App() {
 
     setLottoDone(true);
     setNewBallIdx(null);
-  }, [comboRows.length, finalizeLottery, resetLottery]);
+  }, [comboRows.length, finalizeLottery, lotteryTeams.length, resetLottery]);
 
   const makePick = useCallback(() => {
     safelyAssignPicks("manual", selectedProspect);
@@ -832,7 +873,7 @@ export default function App() {
     const lines = draftPicks
       .map(
         (p) =>
-          `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${p.player.pos}${p.player.league ? ", " + p.player.league : ""})` : "—"
+          `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "—"
           }`
       )
       .join("\n");
@@ -846,9 +887,7 @@ export default function App() {
   const saveDraft = useCallback(() => {
     const renderPickCard = (pick: DraftPick) => {
       const playerName = pick.player ? pick.player.name : "—";
-      const playerMeta = pick.player
-        ? `${pick.player.pos}${pick.player.league ? ` · ${pick.player.league}` : ""}`
-        : "Unselected";
+      const playerMeta = pick.player ? formatProspectMeta(pick.player) : "Unselected";
 
       return `
         <div class="pick-card">
@@ -1149,7 +1188,8 @@ export default function App() {
     const matchesSearch =
       p.name.toLowerCase().includes(searchLower) ||
       p.pos.toLowerCase().includes(searchLower) ||
-      p.league.toLowerCase().includes(searchLower);
+      p.league.toLowerCase().includes(searchLower) ||
+      (p.team ?? "").toLowerCase().includes(searchLower);
 
     return !takenProspects.has(p.rank) && matchesSearch && prospectMatchesPositionFilter(p, positionFilter);
   });
@@ -1429,7 +1469,7 @@ export default function App() {
           Simulate the 2026 NHL Draft Lottery, search NHL draft lottery combos, and build a full first-round NHL mock draft.
         </div>
         {/* <div style={S.sub}>
-          {csvStatus} · {prospectStatus}
+          {csvStatus} · {prospectStatus} · {standingsStatus}
         </div> */}
       </header>
 
@@ -1465,28 +1505,28 @@ export default function App() {
               <button
                 style={btn({ background: "#f5c842", color: "#0a0e1a", borderColor: "#f5c842" })}
                 onClick={drawOneBall}
-                disabled={drawnBalls.length >= 4 || lottoDone || comboRows.length === 0}
+                disabled={drawnBalls.length >= 4 || lottoDone || comboRows.length === 0 || lotteryTeams.length === 0}
               >
                 Draw Ball
               </button>
               <button
                 style={btn({ color: "#7dd3f5", borderColor: "#2d3a50" })}
                 onClick={simDraw}
-                disabled={drawnBalls.length >= 4 || lottoDone || comboRows.length === 0}
+                disabled={drawnBalls.length >= 4 || lottoDone || comboRows.length === 0 || lotteryTeams.length === 0}
               >
                 Simulate Draw
               </button>
               <button
                 style={btn({ background: "#1d4ed8", color: "#dbeafe", borderColor: "#2563eb" })}
                 onClick={useRealResults}
-                disabled={comboRows.length === 0}
+                disabled={comboRows.length === 0 || lotteryTeams.length === 0}
               >
                 Use Real Result
               </button>
               <button
                 style={btn({ color: "#f5c842", borderColor: "#f5c842" })}
                 onClick={() => setLookupOpen(true)}
-                disabled={comboRows.length === 0}
+                disabled={comboRows.length === 0 || lotteryTeams.length === 0}
               >
                 Combo Lookup
               </button>
@@ -1530,7 +1570,7 @@ export default function App() {
             </div>
 
             <div style={S.oddsTitle}>Lottery Teams</div>
-            {LOTTERY_TEAMS.map((team, idx) => {
+            {lotteryTeams.map((team, idx) => {
               const isP1 = pick1Winner === team.name;
               const isP2 = pick2Winner === team.name;
               const won = isP1 || isP2;
@@ -1542,7 +1582,7 @@ export default function App() {
               const fourthBalls = possibleFourthBallsByTeam[team.name] ?? [];
               const assignedLotteryPick = lottoDone
                 ? Number(
-                  Object.entries(buildLotterySlots(lotteryAssignments)).find(
+                  Object.entries(buildLotterySlots(lotteryAssignments, lotteryTeams)).find(
                     ([, slotTeam]) => slotTeam === team.name
                   )?.[0] ?? idx + 1
                 )
@@ -1717,7 +1757,7 @@ export default function App() {
             })}
 
             <div style={S.oddsTitle}>Non-Lottery Order</div>
-            {NON_LOTTERY.map((team) => (
+            {nonLotteryTeams.map((team) => (
               <div
                 key={team.name}
                 style={{
@@ -1735,7 +1775,7 @@ export default function App() {
                     fontFamily: "'Barlow Condensed', sans-serif",
                   }}
                 >
-                  {team.origPick}
+                  {team.pick}
                 </span>
                 <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: "#94a3b8" }}>
                   {team.name}
@@ -1878,8 +1918,8 @@ export default function App() {
                       </div>
                       {pick.player ? (
                         <div style={{ fontSize: 13, color: "#7dd3f5", marginTop: 2 }}>
-                          {pick.player.pos} — {pick.player.name}
-                          {pick.player.league ? ` (${pick.player.league})` : ""}
+                          {pick.player.name}
+                          {formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}
                         </div>
                       ) : (
                         <div style={{ fontSize: 13, color: "#2d3a50", fontStyle: "italic", marginTop: 2 }}>—</div>
@@ -2047,8 +2087,7 @@ export default function App() {
                           </span>
                         </div>
                         <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>
-                          {prospect.pos}
-                          {prospect.league ? ` · ${prospect.league}` : ""}
+                          {formatProspectMeta(prospect)}
                         </div>
                       </div>
                     ))}
