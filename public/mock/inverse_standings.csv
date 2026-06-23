@@ -6,28 +6,28 @@ standingRank,pick,team,lottery,odds,combos,protectedTop,transferTo
 28,5,Toronto,true,8.5,85,5,Boston
 27,6,Seattle,true,7.5,75,,
 26,7,Winnipeg,true,6.5,65,,
-25,8,Florida,true,6.0,60,,
+25,8,Florida,true,6.0,60,,San Jose
 24,9,San Jose,true,5.0,50,,
 23,10,Nashville,true,3.5,35,,
 22,11,St. Louis,true,3.0,30,,
 21,12,New Jersey,true,2.5,25,,
 20,13,NY Islanders,true,2.0,20,,
 19,14,Columbus,true,1.5,15,,
-18,15,St. Louis (DET),true,0.5,5,,
-17,16,Washington,true,0.5,5,,
+18,15,Detroit,true,0.5,5,,St. Louis
+17,16,Washington,true,0.5,5,,St. Louis
 16,17,Los Angeles,false,0,0,,
-15,18,Washington (ANA),false,0,0,,
+15,18,Anaheim,false,0,0,,Washington
 14,19,Utah,false,0,0,,
-13,20,San Jose (EDM),false,0,0,,
+13,20,Edmonton,false,0,0,,Buffalo
 12,21,Philadelphia,false,0,0,,
 11,22,Pittsburgh,false,0,0,,
 10,23,Boston,false,0,0,,
-9,24,Vancouver (MIN),false,0,0,,
-8,25,Seattle (TBL),false,0,0,,
-7,26,NY Rangers (DAL),false,0,0,,
-6,27,Buffalo,false,0,0,,
-5,28,Calgary (VGK),false,0,0,,
-4,29,Montreal,false,0,0,,
-3,30,Carolina,false,0,0,,
-2,31,St. Louis (COL),false,0,0,,
+9,24,Minnesota,false,0,0,,Vancouver
+8,25,Tampa Bay,false,0,0,,Ottawa
+7,26,Dallas,false,0,0,,NY Rangers
+6,27,Buffalo,false,0,0,,San Jose
+5,28,Montreal,false,0,0,,
+4,29,Colorado,false,0,0,,St. Louis
+3,30,Vegas,false,0,0,,Calgary
+2,31,Carolina,false,0,0,,
 1,32,Ottawa,false,0,0,,
