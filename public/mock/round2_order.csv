@@ -1,0 +1,33 @@
+pick,team,note,forfeited
+33,Vancouver,,false
+34,Chicago,,false
+35,New Jersey,via NYR via UTA via CGY,false
+36,Calgary,,false
+37,Chicago,via Toronto,false
+38,Seattle,,false
+39,Pittsburgh,via Winnipeg,false
+40,Florida,,false
+41,Vancouver,via San Jose,false
+42,Nashville,,false
+43,Columbus,via STL via PIT,false
+44,New Jersey,,false
+45,Chicago,via NY Islanders,false
+46,Los Angeles,via CBJ via MTL,false
+47,Detroit,,false
+48,Florida,via Washington,false
+49,Los Angeles,,false
+50,Anaheim,,false
+51,Calgary,via Utah,false
+52,Edmonton,,false
+53,Philadelphia,,false
+54,Pittsburgh,,false
+55,Calgary,via OTT via UTA,false
+56,Boston,,false
+57,Nashville,via Minnesota,false
+58,Tampa Bay,,false
+59,Dallas,,false
+60,Toronto,via BUF via OTT via LAK,false
+61,Montreal,,false
+62,San Jose,via Colorado,false
+63,Forfeited,Vegas Golden Knights forfeited for media violations,true
+64,NY Rangers,via Carolina,false

@@ -40,6 +40,14 @@ interface LotteryAssignment {
   source: "draw" | "default";
 }
 
+interface Round2Pick {
+  pick: number;
+  team: string;
+  note: string;
+  forfeited: boolean;
+  player: Prospect | null;
+}
+
 type ProspectPositionFilter = "all" | "centers" | "wingers" | "forwards" | "defense" | "goalies";
 
 const COMBOS_CSV_PATH = "/mock/combos.csv";
@@ -83,6 +91,8 @@ const LOCKED_DRAFT_ORDER: DraftPick[] = [
   { team: "Carolina",     pick: 31, note: "",                 player: null },
   { team: "Ottawa",       pick: 32, note: "(via Ottawa)",     player: null },
 ];
+
+const ROUND2_CSV_PATH = "/mock/round2_order.csv";
 
 const REAL_PICK_1_BALLS = [7, 2, 11, 12];
 const REAL_PICK_2_BALLS = [11, 4, 3, 7];
@@ -517,6 +527,13 @@ export default function App() {
   const [lookupOpen, setLookupOpen] = useState(false);
   const [lookupSearch, setLookupSearch] = useState("");
 
+  const [round2Order, setRound2Order] = useState<Round2Pick[]>([]);
+  const [round2Picks, setRound2Picks] = useState<Round2Pick[]>([]);
+  const [round2PickIdx, setRound2PickIdx] = useState(0);
+  const [mockRounds, setMockRounds] = useState<1 | 2>(1);
+  const [roundsSelected, setRoundsSelected] = useState(false);
+  const [currentRound, setCurrentRound] = useState<1 | 2>(1);
+
   useEffect(() => {
     fetch(COMBOS_CSV_PATH)
       .then((res) => {
@@ -566,11 +583,45 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    fetch(ROUND2_CSV_PATH)
+      .then((res) => {
+        if (!res.ok) throw new Error("Round 2 CSV not found");
+        return res.text();
+      })
+      .then((text) => {
+        const rows = text
+          .trim()
+          .split(/\r?\n/)
+          .slice(1)
+          .filter(Boolean)
+          .map((line) => {
+            const [pick, team, note, forfeited] = splitCsvLine(line);
+            return {
+              pick: Number(pick),
+              team,
+              note: note ?? "",
+              forfeited: forfeited?.trim().toLowerCase() === "true",
+              player: null,
+            };
+          });
+        setRound2Order(rows);
+      })
+      .catch(() => {
+        console.warn("Could not load round2_order.csv");
+      });
+  }, []);
+
+  useEffect(() => {
     if (!LOTTERY_LOCKED) return;
     setDraftPicks(LOCKED_DRAFT_ORDER);
     setLottoDone(true);
     setLottoPhase("draft");
   }, []);
+
+  useEffect(() => {
+    if (!LOTTERY_LOCKED || round2Order.length === 0) return;
+    setRound2Picks(round2Order.map((r) => ({ ...r, player: null })));
+  }, [round2Order]);
 
   useEffect(() => {
     if (!lookupOpen) return;
@@ -624,6 +675,40 @@ export default function App() {
 
       pickLockRef.current = true;
 
+      const getSmartAutoPick = (
+        picks: DraftPick[],
+        takenRanks: Set<number>,
+        teamName: string
+      ): Prospect | undefined => {
+        const teamPositions = picks
+          .filter((p) => p.team === teamName && p.player)
+          .map((p) => p.player!.pos);
+
+        const available = prospects.filter((p) => !takenRanks.has(p.rank));
+        if (available.length === 0) return undefined;
+
+        const top = available[0];
+
+        // If top prospect is 5+ ranks better than anyone else, just take them (BPA steal logic)
+        if (available.length > 1 && top.rank + 5 < available[1].rank) return top;
+
+        // Score each prospect: base is rank, add soft penalty for position overlap, add random jitter
+        const scored = available.slice(0, 12).map((p) => {
+          const posTokens = p.pos.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+          const overlap = posTokens.some((token) =>
+            teamPositions.some((existing) =>
+              existing.toUpperCase().split(/[^A-Z]+/).filter(Boolean).includes(token)
+            )
+          );
+          const penalty = overlap ? 3 : 0;
+          const jitter = Math.floor(Math.random() * 3); // 0-2 random variance
+          return { prospect: p, score: p.rank + penalty + jitter };
+        });
+
+        scored.sort((a, b) => a.score - b.score);
+        return scored[0]?.prospect;
+      };
+
       setDraftPicks((prev) => {
         const updated = [...prev];
         const latestTaken = new Set<number>();
@@ -647,64 +732,137 @@ export default function App() {
             pickLockRef.current = false;
             return updated;
           }
-
-          updated[nextOpenPickIdx] = {
-            ...updated[nextOpenPickIdx],
-            player: manualProspect,
-          };
-
+          updated[nextOpenPickIdx] = { ...updated[nextOpenPickIdx], player: manualProspect };
           latestTaken.add(manualProspect.rank);
         }
 
         if (mode === "auto-next") {
-          const nextProspect = prospects.find((prospect) => !latestTaken.has(prospect.rank));
-
-          if (!nextProspect) {
-            pickLockRef.current = false;
-            return updated;
-          }
-
-          updated[nextOpenPickIdx] = {
-            ...updated[nextOpenPickIdx],
-            player: nextProspect,
-          };
-
-          latestTaken.add(nextProspect.rank);
+          const teamName = updated[nextOpenPickIdx].team;
+          const pick = getSmartAutoPick(updated, latestTaken, teamName);
+          if (!pick) { pickLockRef.current = false; return updated; }
+          updated[nextOpenPickIdx] = { ...updated[nextOpenPickIdx], player: pick };
+          latestTaken.add(pick.rank);
         }
 
         if (mode === "auto-all") {
           let idx = nextOpenPickIdx;
-
           while (idx < updated.length) {
-            if (updated[idx].player) {
-              idx++;
-              continue;
-            }
-
-            const nextProspect = prospects.find((prospect) => !latestTaken.has(prospect.rank));
-            if (!nextProspect) break;
-
-            updated[idx] = {
-              ...updated[idx],
-              player: nextProspect,
-            };
-
-            latestTaken.add(nextProspect.rank);
+            if (updated[idx].player) { idx++; continue; }
+            const teamName = updated[idx].team;
+            const pick = getSmartAutoPick(updated, latestTaken, teamName);
+            if (!pick) break;
+            updated[idx] = { ...updated[idx], player: pick };
+            latestTaken.add(pick.rank);
             idx++;
           }
         }
 
         const nextIdx = updated.findIndex((pick) => !pick.player);
-
         setCurrentPickIdx(nextIdx === -1 ? updated.length : nextIdx);
         setTakenProspects(latestTaken);
         setSelectedProspect(null);
-
         pickLockRef.current = false;
         return updated;
       });
     },
     [draftActionDisabled, prospects]
+  );
+
+  const safelyAssignRound2Picks = useCallback(
+    (mode: "manual" | "auto-next" | "auto-all", manualProspect?: Prospect | null) => {
+      if (pickLockRef.current) return;
+
+      pickLockRef.current = true;
+
+      const getSmartAutoPick = (
+        r1picks: DraftPick[],
+        r2picks: Round2Pick[],
+        takenRanks: Set<number>,
+        teamName: string
+      ): Prospect | undefined => {
+        const teamPositions = [
+          ...r1picks.filter((p) => p.team === teamName && p.player).map((p) => p.player!.pos),
+          ...r2picks.filter((p) => p.team === teamName && p.player).map((p) => p.player!.pos),
+        ];
+
+        const available = prospects.filter((p) => !takenRanks.has(p.rank));
+        if (available.length === 0) return undefined;
+
+        const top = available[0];
+        if (available.length > 1 && top.rank + 5 < available[1].rank) return top;
+
+        const scored = available.slice(0, 12).map((p) => {
+          const posTokens = p.pos.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+          const overlap = posTokens.some((token) =>
+            teamPositions.some((existing) =>
+              existing.toUpperCase().split(/[^A-Z]+/).filter(Boolean).includes(token)
+            )
+          );
+          const penalty = overlap ? 3 : 0;
+          const jitter = Math.floor(Math.random() * 3);
+          return { prospect: p, score: p.rank + penalty + jitter };
+        });
+
+        scored.sort((a, b) => a.score - b.score);
+        return scored[0]?.prospect;
+      };
+
+      setRound2Picks((prev) => {
+        const updated = [...prev];
+        const latestTaken = new Set<number>();
+
+        draftPicks.forEach((p) => { if (p.player) latestTaken.add(p.player.rank); });
+        updated.forEach((p) => { if (p.player) latestTaken.add(p.player.rank); });
+
+        const nextOpenIdx = updated.findIndex((p) => !p.player && !p.forfeited);
+
+        if (nextOpenIdx === -1) {
+          setRound2PickIdx(updated.length);
+          setTakenProspects(latestTaken);
+          setSelectedProspect(null);
+          pickLockRef.current = false;
+          return updated;
+        }
+
+        if (mode === "manual") {
+          if (!manualProspect || latestTaken.has(manualProspect.rank)) {
+            pickLockRef.current = false;
+            return updated;
+          }
+          updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: manualProspect };
+          latestTaken.add(manualProspect.rank);
+        }
+
+        if (mode === "auto-next") {
+          const teamName = updated[nextOpenIdx].team;
+          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+          if (!pick) { pickLockRef.current = false; return updated; }
+          updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: pick };
+          latestTaken.add(pick.rank);
+        }
+
+        if (mode === "auto-all") {
+          let idx = nextOpenIdx;
+          while (idx < updated.length) {
+            if (updated[idx].player || updated[idx].forfeited) { idx++; continue; }
+            const teamName = updated[idx].team;
+            const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+            if (!pick) break;
+            updated[idx] = { ...updated[idx], player: pick };
+            latestTaken.add(pick.rank);
+            idx++;
+          }
+        }
+
+        const nextIdx = updated.findIndex((p) => !p.player && !p.forfeited);
+        setRound2PickIdx(nextIdx === -1 ? updated.length : nextIdx);
+        setTakenProspects(latestTaken);
+        setSelectedProspect(null);
+        pickLockRef.current = false;
+        return updated;
+      });
+    },
+    [draftPicks, prospects]
   );
 
   const currentTargetPick = useMemo(() => getNextOpenLotteryPick(lotteryAssignments, lotteryTeams), [lotteryAssignments, lotteryTeams]);
@@ -873,6 +1031,10 @@ export default function App() {
     setPositionFilter("all");
     setNewBallIdx(null);
     setCopyLabel("Copy Results");
+    setRound2Picks([]);
+    setRound2PickIdx(0);
+    setCurrentRound(1);
+    setRoundsSelected(false);
   }, []);
 
   const useRealResults = useCallback(() => {
@@ -914,19 +1076,16 @@ export default function App() {
   }, [safelyAssignPicks]);
 
   const copyResults = useCallback(() => {
-    const lines = draftPicks
-      .map(
-        (p) =>
-          `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "—"
-          }`
-      )
-      .join("\n");
+    const r1lines = draftPicks.map((p) => `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "—"}`).join("\n");
+    const r2lines = round2Picks.length > 0
+      ? "\n\nRound 2\n\n" + round2Picks.map((p) => p.forfeited ? `${p.pick}. FORFEITED (${p.note})` : `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "—"}`).join("\n")
+      : "";
 
-    navigator.clipboard.writeText(`2026 NHL Mock Draft - Round 1\n\n${lines}`).then(() => {
+    navigator.clipboard.writeText(`2026 NHL Mock Draft - Round 1\n\n${r1lines}${r2lines}`).then(() => {
       setCopyLabel("Copied!");
       setTimeout(() => setCopyLabel("Copy Results"), 2000);
     });
-  }, [draftPicks]);
+  }, [draftPicks, round2Picks]);
 
   const saveDraft = useCallback(() => {
     const renderPickCard = (pick: DraftPick) => {
@@ -948,8 +1107,42 @@ export default function App() {
       `;
     };
 
+    const renderR2PickCard = (pick: Round2Pick) => {
+      if (pick.forfeited) {
+        return `
+          <div class="pick-card forfeited">
+            <div class="pick-number">${escapeHtml(pick.pick)}</div>
+            <div class="pick-main">
+              <div class="team-name" style="color:#9ca3af">Forfeited</div>
+              <div class="pick-note">${escapeHtml(pick.note)}</div>
+            </div>
+            <div class="selection-main">
+              <div class="player-name" style="color:#6b7280">—</div>
+            </div>
+          </div>
+        `;
+      }
+      const playerName = pick.player ? pick.player.name : "—";
+      const playerMeta = pick.player ? formatProspectMeta(pick.player) : "Unselected";
+      return `
+        <div class="pick-card">
+          <div class="pick-number">${escapeHtml(pick.pick)}</div>
+          <div class="pick-main">
+            <div class="team-name">${escapeHtml(pick.team)}</div>
+            ${pick.note ? `<div class="pick-note">${escapeHtml(pick.note)}</div>` : ""}
+          </div>
+          <div class="selection-main">
+            <div class="player-name">${escapeHtml(playerName)}</div>
+            <div class="player-meta">${escapeHtml(playerMeta)}</div>
+          </div>
+        </div>
+      `;
+    };
+
     const firstColumn = draftPicks.slice(0, 16).map(renderPickCard).join("");
     const secondColumn = draftPicks.slice(16, 32).map(renderPickCard).join("");
+    const r2firstColumn = round2Picks.slice(0, 16).map(renderR2PickCard).join("");
+    const r2secondColumn = round2Picks.slice(16, 32).map(renderR2PickCard).join("");
 
     const html = `<!doctype html>
 <html lang="en">
@@ -1175,7 +1368,7 @@ export default function App() {
         <h1>2026 NHL Mock Draft</h1>
         <div class="subtitle">Round 1 · Picks 1-32</div>
       </div>
-      <div class="status">${isDraftDone ? "Draft Complete" : "Draft In Progress"}</div>
+      <div class="status">${isDraftDone && (mockRounds === 1 || round2Picks.every((p) => p.player || p.forfeited)) ? "Draft Complete" : "Draft In Progress"}</div>
     </div>
 
     <div class="draft-columns">
@@ -1197,6 +1390,27 @@ export default function App() {
         ${secondColumn}
       </section>
     </div>
+    ${mockRounds === 2 && round2Picks.length > 0 ? `
+      <div style="break-before:page; margin-top:0">
+        <div class="header" style="margin-top:0.18in">
+          <div>
+            <h1>2026 NHL Mock Draft</h1>
+            <div class="subtitle">Round 2 · Picks 33-64</div>
+          </div>
+          <div class="status">${round2Picks.every((p) => p.player || p.forfeited) ? "Round 2 Complete" : "Round 2 In Progress"}</div>
+        </div>
+        <div class="draft-columns">
+          <section>
+            <div class="column-header"><div>Pick</div><div>Team</div><div>Selection</div></div>
+            ${r2firstColumn}
+          </section>
+          <section>
+            <div class="column-header"><div>Pick</div><div>Team</div><div>Selection</div></div>
+            ${r2secondColumn}
+          </section>
+        </div>
+      </div>
+    ` : ""}
 
     <div class="actions">
       <button onclick="window.print()">Print / Save PDF</button>
@@ -1224,7 +1438,7 @@ export default function App() {
     link.click();
 
     URL.revokeObjectURL(url);
-  }, [draftPicks, isDraftDone]);
+  }, [draftPicks, isDraftDone, mockRounds, round2Picks]);
 
   const filteredProspects = prospects.filter((p) => {
     const searchLower = search.toLowerCase();
@@ -1834,45 +2048,42 @@ export default function App() {
         </div>
       )}
 
-      {lottoPhase === "draft" && (
-        <div style={S.draftSection}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 14,
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: 28,
-                fontWeight: 900,
-                letterSpacing: 2,
-                color: "#f5c842",
-                textTransform: "uppercase",
-              }}
+      {lottoPhase === "draft" && !roundsSelected && (
+        <div style={{ ...S.draftSection, maxWidth: 480, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, color: "#f5c842", textTransform: "uppercase", letterSpacing: 2, marginBottom: 20 }}>
+            How many rounds?
+          </div>
+          <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+            <button
+              style={btn({ color: "#f5c842", borderColor: "#f5c842", fontSize: 18, padding: "14px 32px" })}
+              onClick={() => { setMockRounds(1); setRoundsSelected(true); setCurrentRound(1); }}
             >
-              2026 Mock Draft - Round 1
+              1 Round
+            </button>
+            <button
+              style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5", fontSize: 18, padding: "14px 32px" })}
+              onClick={() => { setMockRounds(2); setRoundsSelected(true); setCurrentRound(1); }}
+            >
+              2 Rounds
+            </button>
+          </div>
+        </div>
+      )}
+
+      {lottoPhase === "draft" && roundsSelected && currentRound === 1 && (
+        <div style={S.draftSection}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
+            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, letterSpacing: 2, color: "#f5c842", textTransform: "uppercase" }}>
+              2026 Mock Draft — Round 1
             </h2>
             <div style={S.btnRow}>
               {!LOTTERY_LOCKED && (
-                <button
-                  style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })}
-                  onClick={() => setLottoPhase("lottery")}
-                >
+                <button style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })} onClick={() => setLottoPhase("lottery")}>
                   Back to Lottery
                 </button>
               )}
               <button
-                style={
-                  draftActionDisabled
-                    ? disabledBtn({ color: "#22c55e", borderColor: "#22c55e" })
-                    : btn({ color: "#22c55e", borderColor: "#22c55e" })
-                }
+                style={draftActionDisabled ? disabledBtn({ color: "#22c55e", borderColor: "#22c55e" }) : btn({ color: "#22c55e", borderColor: "#22c55e" })}
                 onClick={autoPickAll}
                 disabled={draftActionDisabled}
               >
@@ -1882,16 +2093,28 @@ export default function App() {
                 {copyLabel}
               </button>
               <button
-                style={
-                  draftPicks.length === 0
-                    ? disabledBtn({ color: "#22c55e", borderColor: "#22c55e" })
-                    : btn({ color: "#22c55e", borderColor: "#22c55e" })
-                }
+                style={draftPicks.length === 0 ? disabledBtn({ color: "#22c55e", borderColor: "#22c55e" }) : btn({ color: "#22c55e", borderColor: "#22c55e" })}
                 onClick={saveDraft}
                 disabled={draftPicks.length === 0}
               >
                 Save Draft
               </button>
+              {isDraftDone && mockRounds === 2 && (
+                <button
+                  style={btn({ background: "#3b82f6", color: "#fff", borderColor: "#3b82f6" })}
+                  onClick={() => setCurrentRound(2)}
+                >
+                  Continue to Round 2
+                </button>
+              )}
+              {isDraftDone && mockRounds === 1 && (
+                <button
+                  style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })}
+                  onClick={() => { setMockRounds(2); setCurrentRound(2); }}
+                >
+                  Add Round 2
+                </button>
+              )}
               <button style={btn({ color: "#ef4444", borderColor: "#ef4444" })} onClick={resetLottery}>
                 New Simulation
               </button>
@@ -1902,73 +2125,18 @@ export default function App() {
             <div style={S.draftBoardWrap}>
               {draftPicks.map((pick, idx) => {
                 const onClock = idx === currentPickIdx && !isDraftDone;
-                const numCls =
-                  pick.pick === 1
-                    ? "#f5c842"
-                    : pick.pick === 2
-                      ? "#c0c0c0"
-                      : pick.pick === 3
-                        ? "#cd7f32"
-                        : "#94a3b8";
-
+                const numCls = pick.pick === 1 ? "#f5c842" : pick.pick === 2 ? "#c0c0c0" : pick.pick === 3 ? "#cd7f32" : "#94a3b8";
                 return (
                   <div
                     key={`${pick.pick}-${pick.team}`}
-                    style={{
-                      background: onClock ? "rgba(245,200,66,.05)" : "#1a2236",
-                      border: `1px solid ${onClock ? "#f5c842" : "#2d3a50"}`,
-                      borderRadius: 7,
-                      padding: "11px 14px",
-                      display: "grid",
-                      gridTemplateColumns: "44px 1fr",
-                      gap: 12,
-                      alignItems: "center",
-                      marginBottom: 8,
-                      animation: pick.player ? "fadeIn .25s ease" : "none",
-                    }}
+                    style={{ background: onClock ? "rgba(245,200,66,.05)" : "#1a2236", border: `1px solid ${onClock ? "#f5c842" : "#2d3a50"}`, borderRadius: 7, padding: "11px 14px", display: "grid", gridTemplateColumns: "44px 1fr", gap: 12, alignItems: "center", marginBottom: 8, animation: pick.player ? "fadeIn .25s ease" : "none" }}
                   >
-                    <div
-                      style={{
-                        fontFamily: "'Barlow Condensed', sans-serif",
-                        fontSize: 32,
-                        fontWeight: 900,
-                        color: numCls,
-                        textAlign: "center",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {pick.pick}
-                    </div>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 32, fontWeight: 900, color: numCls, textAlign: "center", lineHeight: 1 }}>{pick.pick}</div>
                     <div>
-                      {onClock && (
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: "#f5c842",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                            marginBottom: 1,
-                          }}
-                        >
-                          On the clock
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          fontFamily: "'Barlow Condensed', sans-serif",
-                          fontSize: 18,
-                          fontWeight: 700,
-                          color: "#e2e8f0",
-                        }}
-                      >
-                        {pick.team}
-                      </div>
+                      {onClock && <div style={{ fontSize: 11, color: "#f5c842", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 1 }}>On the clock</div>}
+                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, color: "#e2e8f0" }}>{pick.team}</div>
                       {pick.player ? (
-                        <div style={{ fontSize: 13, color: "#7dd3f5", marginTop: 2 }}>
-                          {pick.player.name}
-                          {formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}
-                        </div>
+                        <div style={{ fontSize: 13, color: "#7dd3f5", marginTop: 2 }}>{pick.player.name}{formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}</div>
                       ) : (
                         <div style={{ fontSize: 13, color: "#2d3a50", fontStyle: "italic", marginTop: 2 }}>—</div>
                       )}
@@ -1981,111 +2149,16 @@ export default function App() {
 
             <div>
               {!isDraftDone ? (
-                <div
-                  style={{
-                    background: "#1a2236",
-                    border: "1px solid #2d3a50",
-                    borderRadius: 10,
-                    padding: 16,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: 18,
-                      fontWeight: 700,
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                      color: "#7dd3f5",
-                      paddingBottom: 6,
-                      borderBottom: "1px solid #2d3a50",
-                    }}
-                  >
-                    Available Prospects
-                  </div>
-
-                  <div
-                    style={{
-                      background: "rgba(245,200,66,.07)",
-                      border: "1px solid rgba(245,200,66,.28)",
-                      borderRadius: 7,
-                      padding: "10px 12px",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Pick #{curPick?.pick}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "'Barlow Condensed', sans-serif",
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: "#f5c842",
-                      }}
-                    >
-                      {curPick?.team}
-                    </div>
+                <div style={{ background: "#1a2236", border: "1px solid #2d3a50", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#7dd3f5", paddingBottom: 6, borderBottom: "1px solid #2d3a50" }}>Available Prospects</div>
+                  <div style={{ background: "rgba(245,200,66,.07)", border: "1px solid rgba(245,200,66,.28)", borderRadius: 7, padding: "10px 12px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Pick #{curPick?.pick}</div>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: "#f5c842" }}>{curPick?.team}</div>
                     {curPick?.note && <div style={{ fontSize: 12, color: "#94a3b8" }}>{curPick.note}</div>}
                   </div>
-
-                  <button
-                    style={{
-                      ...(draftActionDisabled
-                        ? disabledBtn({ color: "#7dd3f5", borderColor: "#7dd3f5", width: "100%" })
-                        : btn({ color: "#7dd3f5", borderColor: "#7dd3f5", width: "100%" })),
-                      textAlign: "center",
-                    }}
-                    onClick={autoPick}
-                    disabled={draftActionDisabled}
-                  >
-                    Auto-Pick Next
-                  </button>
-
-                  <input
-                    style={{
-                      width: "100%",
-                      background: "#222d42",
-                      border: "1px solid #2d3a50",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      color: "#e2e8f0",
-                      fontFamily: "'Barlow', sans-serif",
-                      fontSize: 15,
-                      outline: "none",
-                    }}
-                    placeholder="Search prospects"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setSelectedProspect(null);
-                    }}
-                    disabled={draftActionDisabled}
-                  />
-
-                  <select
-                    style={{
-                      width: "100%",
-                      background: "#222d42",
-                      border: "1px solid #2d3a50",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      color: "#e2e8f0",
-                      fontFamily: "'Barlow', sans-serif",
-                      fontSize: 15,
-                      outline: "none",
-                      cursor: draftActionDisabled ? "not-allowed" : "pointer",
-                    }}
-                    value={positionFilter}
-                    onChange={(e) => {
-                      setPositionFilter(e.target.value as ProspectPositionFilter);
-                      setSelectedProspect(null);
-                    }}
-                    disabled={draftActionDisabled}
-                  >
+                  <button style={{ ...(draftActionDisabled ? disabledBtn({ color: "#7dd3f5", borderColor: "#7dd3f5", width: "100%" }) : btn({ color: "#7dd3f5", borderColor: "#7dd3f5", width: "100%" })), textAlign: "center" }} onClick={autoPick} disabled={draftActionDisabled}>Auto-Pick Next</button>
+                  <input style={{ width: "100%", background: "#222d42", border: "1px solid #2d3a50", borderRadius: 10, padding: "10px 12px", color: "#e2e8f0", fontFamily: "'Barlow', sans-serif", fontSize: 15, outline: "none" }} placeholder="Search prospects" value={search} onChange={(e) => { setSearch(e.target.value); setSelectedProspect(null); }} disabled={draftActionDisabled} />
+                  <select style={{ width: "100%", background: "#222d42", border: "1px solid #2d3a50", borderRadius: 10, padding: "10px 12px", color: "#e2e8f0", fontFamily: "'Barlow', sans-serif", fontSize: 15, outline: "none", cursor: draftActionDisabled ? "not-allowed" : "pointer" }} value={positionFilter} onChange={(e) => { setPositionFilter(e.target.value as ProspectPositionFilter); setSelectedProspect(null); }} disabled={draftActionDisabled}>
                     <option value="all">All Positions</option>
                     <option value="centers">Centers</option>
                     <option value="wingers">Wingers</option>
@@ -2093,109 +2166,140 @@ export default function App() {
                     <option value="defense">Defense</option>
                     <option value="goalies">Goalies</option>
                   </select>
-
                   <div style={{ overflowY: "auto", maxHeight: 380, display: "flex", flexDirection: "column", gap: 3 }}>
                     {filteredProspects.map((prospect) => (
-                      <div
-                        key={prospect.rank}
-                        onClick={() => {
-                          if (!draftActionDisabled && !takenProspects.has(prospect.rank)) {
-                            setSelectedProspect(prospect);
-                          }
-                        }}
-                        style={{
-                          background: selectedProspect?.rank === prospect.rank ? "rgba(59,130,246,.12)" : "#222d42",
-                          border: `1px solid ${selectedProspect?.rank === prospect.rank ? "#3b82f6" : "#2d3a50"}`,
-                          borderRadius: 10,
-                          padding: "10px 12px",
-                          cursor: draftActionDisabled ? "not-allowed" : "pointer",
-                          opacity: draftActionDisabled ? 0.5 : 1,
-                        }}
-                      >
+                      <div key={prospect.rank} onClick={() => { if (!draftActionDisabled && !takenProspects.has(prospect.rank)) setSelectedProspect(prospect); }} style={{ background: selectedProspect?.rank === prospect.rank ? "rgba(59,130,246,.12)" : "#222d42", border: `1px solid ${selectedProspect?.rank === prospect.rank ? "#3b82f6" : "#2d3a50"}`, borderRadius: 10, padding: "10px 12px", cursor: draftActionDisabled ? "not-allowed" : "pointer", opacity: draftActionDisabled ? 0.5 : 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span
-                            style={{
-                              fontFamily: "'Barlow Condensed', sans-serif",
-                              fontSize: 13,
-                              color: "#f5c842",
-                              fontWeight: 700,
-                            }}
-                          >
-                            #{prospect.rank}
-                          </span>
-                          <span
-                            style={{
-                              fontFamily: "'Barlow Condensed', sans-serif",
-                              fontSize: 17,
-                              fontWeight: 700,
-                              color: "#e2e8f0",
-                            }}
-                          >
-                            {prospect.name}
-                          </span>
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: "#f5c842", fontWeight: 700 }}>#{prospect.rank}</span>
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: "#e2e8f0" }}>{prospect.name}</span>
                         </div>
-                        <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>
-                          {formatProspectMeta(prospect)}
-                        </div>
+                        <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>{formatProspectMeta(prospect)}</div>
                       </div>
                     ))}
                   </div>
-
-                  <button
-                    style={{
-                      width: "100%",
-                      background: selectedProspect && !draftActionDisabled ? "#3b82f6" : "#222d42",
-                      color: selectedProspect && !draftActionDisabled ? "#fff" : "#94a3b8",
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: 18,
-                      fontWeight: 700,
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                      border: "none",
-                      borderRadius: 7,
-                      padding: 10,
-                      cursor: selectedProspect && !draftActionDisabled ? "pointer" : "not-allowed",
-                    }}
-                    onClick={makePick}
-                    disabled={!selectedProspect || draftActionDisabled}
-                  >
+                  <button style={{ width: "100%", background: selectedProspect && !draftActionDisabled ? "#3b82f6" : "#222d42", color: selectedProspect && !draftActionDisabled ? "#fff" : "#94a3b8", fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", border: "none", borderRadius: 7, padding: 10, cursor: selectedProspect && !draftActionDisabled ? "pointer" : "not-allowed" }} onClick={makePick} disabled={!selectedProspect || draftActionDisabled}>
                     {selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
                   </button>
                 </div>
               ) : (
-                <div
-                  style={{
-                    background: "#1a2236",
-                    border: "1px solid #2d3a50",
-                    borderRadius: 10,
-                    padding: 24,
-                    textAlign: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: 28,
-                      fontWeight: 700,
-                      color: "#f5c842",
-                      marginBottom: 10,
-                    }}
-                  >
-                    Draft Complete
-                  </div>
-                  <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 18 }}>
-                    All 32 picks have been made.
-                  </div>
+                <div style={{ background: "#1a2236", border: "1px solid #2d3a50", borderRadius: 10, padding: 24, textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 700, color: "#f5c842", marginBottom: 10 }}>Round 1 Complete</div>
+                  <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 18 }}>All 32 picks have been made.</div>
                   <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                    <button style={btn({ color: "#f5c842", borderColor: "#f5c842" })} onClick={copyResults}>
-                      {copyLabel}
-                    </button>
-                    <button style={btn({ color: "#22c55e", borderColor: "#22c55e" })} onClick={saveDraft}>
-                      Save Draft
-                    </button>
-                    <button style={btn({ color: "#ef4444", borderColor: "#ef4444" })} onClick={resetLottery}>
-                      New Simulation
-                    </button>
+                    <button style={btn({ color: "#f5c842", borderColor: "#f5c842" })} onClick={copyResults}>{copyLabel}</button>
+                    <button style={btn({ color: "#22c55e", borderColor: "#22c55e" })} onClick={saveDraft}>Save Draft</button>
+                    {mockRounds === 2 && (
+                      <button style={btn({ background: "#3b82f6", color: "#fff", borderColor: "#3b82f6" })} onClick={() => setCurrentRound(2)}>Continue to Round 2</button>
+                    )}
+                    {mockRounds === 1 && (
+                      <button style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })} onClick={() => { setMockRounds(2); setCurrentRound(2); }}>Add Round 2</button>
+                    )}
+                    <button style={btn({ color: "#ef4444", borderColor: "#ef4444" })} onClick={resetLottery}>New Simulation</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lottoPhase === "draft" && roundsSelected && currentRound === 2 && (
+        <div style={S.draftSection}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
+            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, letterSpacing: 2, color: "#f5c842", textTransform: "uppercase" }}>
+              2026 Mock Draft — Round 2
+            </h2>
+            <div style={S.btnRow}>
+              <button style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })} onClick={() => setCurrentRound(1)}>Back to Round 1</button>
+              <button
+                style={btn({ color: "#22c55e", borderColor: "#22c55e" })}
+                onClick={() => safelyAssignRound2Picks("auto-all")}
+                disabled={round2Picks.every((p) => p.player || p.forfeited)}
+              >
+                Auto-Pick All
+              </button>
+              <button style={btn({ color: "#f5c842", borderColor: "#f5c842" })} onClick={copyResults}>{copyLabel}</button>
+              <button style={btn({ color: "#22c55e", borderColor: "#22c55e" })} onClick={saveDraft}>Save Draft</button>
+              <button style={btn({ color: "#ef4444", borderColor: "#ef4444" })} onClick={resetLottery}>New Simulation</button>
+            </div>
+          </div>
+
+          <div className="nhl-draft-layout" style={S.draftLayout}>
+            <div style={S.draftBoardWrap}>
+              {round2Picks.map((pick, idx) => {
+                const onClock = idx === round2PickIdx && !pick.forfeited && !round2Picks.every((p) => p.player || p.forfeited);
+                return (
+                  <div
+                    key={`r2-${pick.pick}`}
+                    style={{ background: pick.forfeited ? "rgba(100,100,100,.08)" : onClock ? "rgba(245,200,66,.05)" : "#1a2236", border: `1px solid ${pick.forfeited ? "#374151" : onClock ? "#f5c842" : "#2d3a50"}`, borderRadius: 7, padding: "11px 14px", display: "grid", gridTemplateColumns: "44px 1fr", gap: 12, alignItems: "center", marginBottom: 8, opacity: pick.forfeited ? 0.4 : 1 }}
+                  >
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 32, fontWeight: 900, color: pick.forfeited ? "#4b5563" : "#94a3b8", textAlign: "center", lineHeight: 1 }}>{pick.pick}</div>
+                    <div>
+                      {onClock && <div style={{ fontSize: 11, color: "#f5c842", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 1 }}>On the clock</div>}
+                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, color: pick.forfeited ? "#4b5563" : "#e2e8f0" }}>{pick.forfeited ? "Forfeited" : pick.team}</div>
+                      {pick.forfeited ? (
+                        <div style={{ fontSize: 13, color: "#4b5563", marginTop: 2 }}>{pick.note}</div>
+                      ) : pick.player ? (
+                        <div style={{ fontSize: 13, color: "#7dd3f5", marginTop: 2 }}>{pick.player.name}{formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}</div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: "#2d3a50", fontStyle: "italic", marginTop: 2 }}>—</div>
+                      )}
+                      {!pick.forfeited && pick.note && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{pick.note}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div>
+              {!round2Picks.every((p) => p.player || p.forfeited) ? (
+                <div style={{ background: "#1a2236", border: "1px solid #2d3a50", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#7dd3f5", paddingBottom: 6, borderBottom: "1px solid #2d3a50" }}>Available Prospects</div>
+                  {(() => {
+                    const curR2Pick = round2Picks[round2PickIdx];
+                    return (
+                      <>
+                        <div style={{ background: "rgba(245,200,66,.07)", border: "1px solid rgba(245,200,66,.28)", borderRadius: 7, padding: "10px 12px", textAlign: "center" }}>
+                          <div style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Pick #{curR2Pick?.pick}</div>
+                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: "#f5c842" }}>{curR2Pick?.team}</div>
+                          {curR2Pick?.note && <div style={{ fontSize: 12, color: "#94a3b8" }}>{curR2Pick.note}</div>}
+                        </div>
+                        <button style={{ ...(btn({ color: "#7dd3f5", borderColor: "#7dd3f5", width: "100%" })), textAlign: "center" }} onClick={() => safelyAssignRound2Picks("auto-next")}>Auto-Pick Next</button>
+                        <input style={{ width: "100%", background: "#222d42", border: "1px solid #2d3a50", borderRadius: 10, padding: "10px 12px", color: "#e2e8f0", fontFamily: "'Barlow', sans-serif", fontSize: 15, outline: "none" }} placeholder="Search prospects" value={search} onChange={(e) => { setSearch(e.target.value); setSelectedProspect(null); }} />
+                        <select style={{ width: "100%", background: "#222d42", border: "1px solid #2d3a50", borderRadius: 10, padding: "10px 12px", color: "#e2e8f0", fontFamily: "'Barlow', sans-serif", fontSize: 15, outline: "none" }} value={positionFilter} onChange={(e) => { setPositionFilter(e.target.value as ProspectPositionFilter); setSelectedProspect(null); }}>
+                          <option value="all">All Positions</option>
+                          <option value="centers">Centers</option>
+                          <option value="wingers">Wingers</option>
+                          <option value="forwards">Forwards</option>
+                          <option value="defense">Defense</option>
+                          <option value="goalies">Goalies</option>
+                        </select>
+                        <div style={{ overflowY: "auto", maxHeight: 380, display: "flex", flexDirection: "column", gap: 3 }}>
+                          {filteredProspects.map((prospect) => (
+                            <div key={prospect.rank} onClick={() => { if (!takenProspects.has(prospect.rank)) setSelectedProspect(prospect); }} style={{ background: selectedProspect?.rank === prospect.rank ? "rgba(59,130,246,.12)" : "#222d42", border: `1px solid ${selectedProspect?.rank === prospect.rank ? "#3b82f6" : "#2d3a50"}`, borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: "#f5c842", fontWeight: 700 }}>#{prospect.rank}</span>
+                                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: "#e2e8f0" }}>{prospect.name}</span>
+                              </div>
+                              <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>{formatProspectMeta(prospect)}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <button style={{ width: "100%", background: selectedProspect ? "#3b82f6" : "#222d42", color: selectedProspect ? "#fff" : "#94a3b8", fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", border: "none", borderRadius: 7, padding: 10, cursor: selectedProspect ? "pointer" : "not-allowed" }} onClick={() => safelyAssignRound2Picks("manual", selectedProspect)} disabled={!selectedProspect}>
+                          {selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div style={{ background: "#1a2236", border: "1px solid #2d3a50", borderRadius: 10, padding: 24, textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 700, color: "#f5c842", marginBottom: 10 }}>Draft Complete</div>
+                  <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 18 }}>All picks have been made.</div>
+                  <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button style={btn({ color: "#f5c842", borderColor: "#f5c842" })} onClick={copyResults}>{copyLabel}</button>
+                    <button style={btn({ color: "#22c55e", borderColor: "#22c55e" })} onClick={saveDraft}>Save Draft</button>
+                    <button style={btn({ color: "#ef4444", borderColor: "#ef4444" })} onClick={resetLottery}>New Simulation</button>
                   </div>
                 </div>
               )}
