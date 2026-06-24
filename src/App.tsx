@@ -47,6 +47,43 @@ const PROSPECTS_CSV_PATH = "/mock/prospects.csv";
 const INVERSE_STANDINGS_CSV_PATH = "/mock/inverse_standings.csv";
 const REDRAW_COMBO = "11,12,13,14";
 
+const LOTTERY_LOCKED = true;
+
+const LOCKED_DRAFT_ORDER: DraftPick[] = [
+  { team: "Toronto",      pick: 1,  note: "",                 player: null },
+  { team: "San Jose",     pick: 2,  note: "",                 player: null },
+  { team: "Vancouver",    pick: 3,  note: "",                 player: null },
+  { team: "Chicago",      pick: 4,  note: "",                 player: null },
+  { team: "NY Rangers",   pick: 5,  note: "",                 player: null },
+  { team: "Calgary",      pick: 6,  note: "",                 player: null },
+  { team: "Seattle",      pick: 7,  note: "",                 player: null },
+  { team: "Winnipeg",     pick: 8,  note: "",                 player: null },
+  { team: "San Jose",     pick: 9,  note: "(via Florida)",    player: null },
+  { team: "Nashville",    pick: 10, note: "",                 player: null },
+  { team: "St. Louis",    pick: 11, note: "",                 player: null },
+  { team: "New Jersey",   pick: 12, note: "",                 player: null },
+  { team: "NY Islanders", pick: 13, note: "",                 player: null },
+  { team: "Columbus",     pick: 14, note: "",                 player: null },
+  { team: "St. Louis",    pick: 15, note: "(via Detroit)",    player: null },
+  { team: "St. Louis",    pick: 16, note: "(via Washington)", player: null },
+  { team: "Los Angeles",  pick: 17, note: "",                 player: null },
+  { team: "Washington",   pick: 18, note: "(via Anaheim)",    player: null },
+  { team: "Utah",         pick: 19, note: "",                 player: null },
+  { team: "Buffalo",      pick: 20, note: "(via Edmonton)",   player: null },
+  { team: "Philadelphia", pick: 21, note: "",                 player: null },
+  { team: "Pittsburgh",   pick: 22, note: "",                 player: null },
+  { team: "Boston",       pick: 23, note: "",                 player: null },
+  { team: "Vancouver",    pick: 24, note: "(via Minnesota)",  player: null },
+  { team: "Ottawa",       pick: 25, note: "(via Tampa Bay)",  player: null },
+  { team: "NY Rangers",   pick: 26, note: "(via Dallas)",     player: null },
+  { team: "San Jose",     pick: 27, note: "(via Buffalo)",    player: null },
+  { team: "Montreal",     pick: 28, note: "",                 player: null },
+  { team: "St. Louis",    pick: 29, note: "(via Colorado)",   player: null },
+  { team: "Calgary",      pick: 30, note: "(via Vegas)",      player: null },
+  { team: "Carolina",     pick: 31, note: "",                 player: null },
+  { team: "Ottawa",       pick: 32, note: "(via Ottawa)",     player: null },
+];
+
 const REAL_PICK_1_BALLS = [7, 2, 11, 12];
 const REAL_PICK_2_BALLS = [11, 4, 3, 7];
 
@@ -526,6 +563,13 @@ export default function App() {
       .catch(() => {
         setStandingsStatus("Could not load inverse_standings.csv. Make sure inverse_standings.csv is in /public/mock.");
       });
+  }, []);
+
+  useEffect(() => {
+    if (!LOTTERY_LOCKED) return;
+    setDraftPicks(LOCKED_DRAFT_ORDER);
+    setLottoDone(true);
+    setLottoPhase("draft");
   }, []);
 
   useEffect(() => {
@@ -1464,9 +1508,11 @@ export default function App() {
       `}</style>
 
       <header style={S.header}>
-        <h1 style={S.h1}>2026 NHL Draft Lottery Simulator</h1>
+        <h1 style={S.h1}>{LOTTERY_LOCKED ? "2026 NHL Mock Draft Simulator" : "2026 NHL Draft Lottery Simulator"}</h1>
         <div style={S.sub}>
-          Simulate the 2026 NHL Draft Lottery, search NHL draft lottery combos, and build a full first-round NHL mock draft.
+          {LOTTERY_LOCKED
+            ? "Build your 2026 NHL first-round mock draft."
+            : "Simulate the 2026 NHL Draft Lottery, search NHL draft lottery combos, and build a full first-round NHL mock draft."}
         </div>
         {/* <div style={S.sub}>
           {csvStatus} · {prospectStatus} · {standingsStatus}
@@ -1813,12 +1859,14 @@ export default function App() {
               2026 Mock Draft - Round 1
             </h2>
             <div style={S.btnRow}>
-              <button
-                style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })}
-                onClick={() => setLottoPhase("lottery")}
-              >
-                Back to Lottery
-              </button>
+              {!LOTTERY_LOCKED && (
+                <button
+                  style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })}
+                  onClick={() => setLottoPhase("lottery")}
+                >
+                  Back to Lottery
+                </button>
+              )}
               <button
                 style={
                   draftActionDisabled
