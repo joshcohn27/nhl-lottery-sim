@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-30T17:57:12.372Z",
+  "updated": "2026-09-30T18:03:50.495Z",
   "seasonId": 20262027,
   "provisional": false,
   "teams": [
@@ -14,8 +14,7 @@
       "wins": 0,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 4,
-      "wildcardSequence": 1
+      "inPlayoffs": true
     },
     {
       "abbrev": "BUF",
@@ -28,8 +27,7 @@
       "wins": 0,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 4,
-      "wildcardSequence": 1
+      "inPlayoffs": true
     },
     {
       "abbrev": "CGY",
@@ -42,8 +40,7 @@
       "wins": 0,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 5,
-      "wildcardSequence": 2
+      "inPlayoffs": true
     },
     {
       "abbrev": "CHI",
@@ -56,8 +53,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 8,
-      "wildcardSequence": 10
+      "inPlayoffs": false
     },
     {
       "abbrev": "COL",
@@ -70,8 +66,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 1,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "CBJ",
@@ -84,8 +79,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 2,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "DAL",
@@ -98,8 +92,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 2,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "DET",
@@ -112,8 +105,7 @@
       "wins": 0,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 5,
-      "wildcardSequence": 2
+      "inPlayoffs": true
     },
     {
       "abbrev": "LAK",
@@ -126,8 +118,7 @@
       "wins": 0,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 6,
-      "wildcardSequence": 3
+      "inPlayoffs": false
     },
     {
       "abbrev": "MIN",
@@ -140,8 +131,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 3,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "NSH",
@@ -154,8 +144,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 4,
-      "wildcardSequence": 4
+      "inPlayoffs": false
     },
     {
       "abbrev": "NJD",
@@ -168,8 +157,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 3,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "NYI",
@@ -182,8 +170,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 4,
-      "wildcardSequence": 3
+      "inPlayoffs": false
     },
     {
       "abbrev": "NYR",
@@ -196,8 +183,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 8,
-      "wildcardSequence": 10
+      "inPlayoffs": false
     },
     {
       "abbrev": "OTT",
@@ -210,8 +196,7 @@
       "wins": 0,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 6,
-      "wildcardSequence": 4
+      "inPlayoffs": false
     },
     {
       "abbrev": "PHI",
@@ -224,8 +209,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 5,
-      "wildcardSequence": 5
+      "inPlayoffs": false
     },
     {
       "abbrev": "PIT",
@@ -238,8 +222,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 6,
-      "wildcardSequence": 6
+      "inPlayoffs": false
     },
     {
       "abbrev": "SJS",
@@ -252,8 +235,7 @@
       "wins": 0,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 7,
-      "wildcardSequence": 5
+      "inPlayoffs": false
     },
     {
       "abbrev": "SEA",
@@ -266,8 +248,7 @@
       "wins": 0,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 8,
-      "wildcardSequence": 6
+      "inPlayoffs": false
     },
     {
       "abbrev": "STL",
@@ -280,8 +261,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 5,
-      "wildcardSequence": 7
+      "inPlayoffs": false
     },
     {
       "abbrev": "TBL",
@@ -294,8 +274,7 @@
       "wins": 0,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 7,
-      "wildcardSequence": 7
+      "inPlayoffs": false
     },
     {
       "abbrev": "TOR",
@@ -308,8 +287,7 @@
       "wins": 0,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 8,
-      "wildcardSequence": 9
+      "inPlayoffs": false
     },
     {
       "abbrev": "UTA",
@@ -322,8 +300,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 6,
-      "wildcardSequence": 8
+      "inPlayoffs": false
     },
     {
       "abbrev": "WSH",
@@ -336,8 +313,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 7,
-      "wildcardSequence": 8
+      "inPlayoffs": false
     },
     {
       "abbrev": "WPG",
@@ -350,8 +326,7 @@
       "wins": 0,
       "divisionAbbrev": "C",
       "conferenceAbbrev": "W",
-      "divisionSequence": 7,
-      "wildcardSequence": 9
+      "inPlayoffs": false
     },
     {
       "abbrev": "CAR",
@@ -364,8 +339,7 @@
       "wins": 0,
       "divisionAbbrev": "M",
       "conferenceAbbrev": "E",
-      "divisionSequence": 1,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "EDM",
@@ -378,8 +352,7 @@
       "wins": 0,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 3,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "FLA",
@@ -392,8 +365,7 @@
       "wins": 1,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 3,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "VAN",
@@ -406,8 +378,7 @@
       "wins": 1,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 2,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "BOS",
@@ -420,8 +391,7 @@
       "wins": 1,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 1,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "MTL",
@@ -434,8 +404,7 @@
       "wins": 1,
       "divisionAbbrev": "A",
       "conferenceAbbrev": "E",
-      "divisionSequence": 2,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     },
     {
       "abbrev": "VGK",
@@ -448,8 +417,7 @@
       "wins": 1,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
-      "divisionSequence": 1,
-      "wildcardSequence": 0
+      "inPlayoffs": true
     }
   ]
 }

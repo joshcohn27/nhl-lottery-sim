@@ -375,8 +375,16 @@ export default function App() {
 
   const lotteryPool = useMemo(() => {
     if (!standingsFile) return { lotteryTeams: [], otherTeams: [] };
-    return getLotteryPool(standingsFile.teams, LOTTERY_TEAM_COUNT, seasonComplete);
-  }, [standingsFile, seasonComplete]);
+    return getLotteryPool(standingsFile.teams);
+  }, [standingsFile]);
+
+  // lotteryPool's two groups are each already worst-first (relative order preserved
+  // from the full sort), so the boundary between them is exactly the cut line.
+  const playoffCutline = useMemo(() => {
+    const lastTeamIn = lotteryPool.otherTeams[0] ?? null;
+    const firstTeamOut = lotteryPool.lotteryTeams[lotteryPool.lotteryTeams.length - 1] ?? null;
+    return lastTeamIn && firstTeamOut ? { lastTeamIn, firstTeamOut } : null;
+  }, [lotteryPool]);
 
   const lotteryTeams = useMemo(
     () =>
@@ -1853,7 +1861,24 @@ export default function App() {
               );
             })}
 
-            <div style={S.oddsTitle}>Non-Lottery Order</div>
+            <div style={S.oddsTitle}>Playoff Field (if the season ended today)</div>
+            {playoffCutline && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#94a3b8",
+                  background: "#1a2236",
+                  border: "1px solid #2d3a50",
+                  borderRadius: 10,
+                  padding: "8px 10px",
+                  marginBottom: 8,
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong style={{ color: "#7dd3f5" }}>Cut line:</strong> {playoffCutline.lastTeamIn.name} is the last
+                team in the playoff field; {playoffCutline.firstTeamOut.name} is the first team in the lottery.
+              </div>
+            )}
             {nonLotteryTeams.map((team) => (
               <div
                 key={team.name}

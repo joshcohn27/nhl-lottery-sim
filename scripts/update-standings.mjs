@@ -45,6 +45,66 @@ function compareWorstFirst(a, b) {
   );
 }
 
+function compareBestFirst(a, b) {
+  return -compareWorstFirst(a, b);
+}
+
+// Fallback "if the playoffs started today" computation - kept in sync with
+// src/lib/standings.ts's computePlayoffField. Only used if the live response
+// doesn't carry usable divisionSequence/wildcardSequence for every team.
+function computePlayoffFieldFallback(teams) {
+  const divisionQualifiers = new Set();
+  const byDivision = new Map();
+  for (const team of teams) {
+    const group = byDivision.get(team.divisionAbbrev) ?? [];
+    group.push(team);
+    byDivision.set(team.divisionAbbrev, group);
+  }
+  for (const divisionTeams of byDivision.values()) {
+    [...divisionTeams].sort(compareBestFirst).slice(0, 3).forEach((t) => divisionQualifiers.add(t.abbrev));
+  }
+
+  const wildcardQualifiers = new Set();
+  const byConference = new Map();
+  for (const team of teams) {
+    const group = byConference.get(team.conferenceAbbrev) ?? [];
+    group.push(team);
+    byConference.set(team.conferenceAbbrev, group);
+  }
+  for (const conferenceTeams of byConference.values()) {
+    const remaining = conferenceTeams.filter((t) => !divisionQualifiers.has(t.abbrev));
+    [...remaining].sort(compareBestFirst).slice(0, 2).forEach((t) => wildcardQualifiers.add(t.abbrev));
+  }
+
+  return new Map(teams.map((t) => [t.abbrev, divisionQualifiers.has(t.abbrev) || wildcardQualifiers.has(t.abbrev)]));
+}
+
+// Prefers the live standings response's own divisionSequence/wildcardSequence
+// (verified against a live response: divisionSequence is 1-8 rank within
+// division, wildcardSequence is 1-10 rank within conference among teams
+// outside their division's top 3, with 0 meaning "not applicable" for those
+// automatic qualifiers) - falls back to computing it ourselves only if any
+// row is missing them.
+function computeInPlayoffs(teams, rawRowsByAbbrev) {
+  const allRowsHaveSequences = teams.every((t) => {
+    const raw = rawRowsByAbbrev.get(t.abbrev);
+    return Number.isFinite(raw?.divisionSequence) && Number.isFinite(raw?.wildcardSequence);
+  });
+
+  if (allRowsHaveSequences) {
+    return new Map(
+      teams.map((t) => {
+        const raw = rawRowsByAbbrev.get(t.abbrev);
+        const inPlayoffs = raw.divisionSequence <= 3 || (raw.wildcardSequence >= 1 && raw.wildcardSequence <= 2);
+        return [t.abbrev, inPlayoffs];
+      })
+    );
+  }
+
+  console.warn("update-standings: live response missing division/wildcard sequence fields - computing playoff field manually.");
+  return computePlayoffFieldFallback(teams);
+}
+
 async function readExistingFile() {
   try {
     return JSON.parse(await readFile(OUTPUT_PATH, "utf8"));
@@ -122,11 +182,16 @@ async function main() {
   }
 
   let teams;
+  let rawRowsByAbbrev;
   try {
+    rawRowsByAbbrev = new Map(rows.map((row) => [row.teamAbbrev?.default, row]));
     teams = rows.map((row) => {
       const abbrev = row.teamAbbrev?.default;
       const name = NAME_BY_ABBREV[abbrev];
       if (!name) throw new Error(`unrecognized team abbrev "${abbrev}"`);
+      if (!row.divisionAbbrev || !row.conferenceAbbrev) {
+        throw new Error(`missing division/conference for "${abbrev}"`);
+      }
 
       return {
         abbrev,
@@ -139,12 +204,18 @@ async function main() {
         wins: row.wins ?? 0,
         divisionAbbrev: row.divisionAbbrev,
         conferenceAbbrev: row.conferenceAbbrev,
-        divisionSequence: row.divisionSequence,
-        wildcardSequence: row.wildcardSequence,
       };
     });
   } catch (err) {
     return keepLastGood(`field mapping failed (${err.message})`, existing);
+  }
+
+  const inPlayoffsByAbbrev = computeInPlayoffs(teams, rawRowsByAbbrev);
+  teams = teams.map((t) => ({ ...t, inPlayoffs: inPlayoffsByAbbrev.get(t.abbrev) ?? false }));
+
+  const playoffCount = teams.filter((t) => t.inPlayoffs).length;
+  if (playoffCount !== 16) {
+    return keepLastGood(`computed ${playoffCount} playoff teams, expected 16 - refusing to trust this result`, existing);
   }
 
   teams.sort(compareWorstFirst);
