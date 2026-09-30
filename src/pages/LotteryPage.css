@@ -1,0 +1,390 @@
+/* Page-specific layout for the Lottery Sim / Mock Draft flow. Global
+ * primitives (buttons, the stat table, colors, spacing) live in
+ * src/styles/tokens.css - this file is composition/layout only. */
+
+.lottery-page-sub {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.status-line {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  margin: 0 0 var(--space-6);
+}
+
+.lottery-machine {
+  max-width: 620px;
+  margin: 0 auto var(--space-8);
+  background: var(--color-white);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.lottery-machine-title {
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-purple);
+  font-size: var(--font-size-md);
+}
+
+.lottery-machine-phase {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ball-display {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.combo-box,
+.result-banner {
+  width: 100%;
+  background: var(--color-purple-tint);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+}
+
+.combo-label,
+.result-pick-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-1);
+}
+
+.combo-numbers {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-purple);
+  letter-spacing: 0.1em;
+  min-height: 1.6em;
+}
+
+.result-team-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: #1a7f37;
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.machine-help-text {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.advance-history-note {
+  max-width: 900px;
+  margin: 0 auto var(--space-4);
+  background: var(--color-purple-tint);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.advance-history-note strong {
+  color: var(--color-purple);
+}
+
+.lottery-row-alive {
+  box-shadow: inset 3px 0 0 #1a7f37;
+}
+
+.lottery-row-eliminated {
+  opacity: 0.35;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.pill-alive {
+  background: rgba(26, 127, 55, 0.12);
+  color: #1a7f37;
+}
+
+.pill-out {
+  background: rgba(169, 68, 66, 0.12);
+  color: #a94442;
+}
+
+.pill-won {
+  background: var(--color-purple-tint);
+  color: var(--color-purple);
+  border: 1px solid var(--color-purple);
+}
+
+.fourth-ball-chip {
+  border: 1px solid var(--color-purple);
+  color: var(--color-purple);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  margin-right: 4px;
+}
+
+/* Draft board */
+.draft-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.draft-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .draft-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.draft-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 78vh;
+  overflow-y: auto;
+}
+
+.pick-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: var(--space-3);
+  align-items: center;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+}
+
+.pick-row.on-clock {
+  border-color: var(--color-purple);
+  background: var(--color-purple-tint);
+}
+
+.pick-row.forfeited {
+  opacity: 0.4;
+}
+
+.pick-number {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-black);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.on-clock-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-purple);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pick-player {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.pick-note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.prospect-panel {
+  background: var(--color-white);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+}
+
+.prospect-panel-title {
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-purple);
+  border-bottom: 1px solid var(--color-divider);
+  padding-bottom: var(--space-2);
+}
+
+.on-clock-card {
+  background: var(--color-purple-tint);
+  border: 1px solid var(--color-purple);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  text-align: center;
+}
+
+.on-clock-card .team-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-purple);
+}
+
+.form-input {
+  width: 100%;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.prospect-list {
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prospect-row {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.prospect-row.selected {
+  border-color: var(--color-purple);
+  background: var(--color-purple-tint);
+}
+
+.prospect-rank {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  margin-right: var(--space-2);
+}
+
+.prospect-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.complete-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.complete-card h2 {
+  color: var(--color-purple);
+  margin: 0 0 var(--space-2);
+}
+
+.round-select-card {
+  max-width: 480px;
+  margin: var(--space-8) auto;
+  text-align: center;
+}
+
+.round-select-card h2 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-5);
+}
+
+/* Combo lookup modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(51, 51, 51, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.modal-panel {
+  width: min(1040px, 100%);
+  max-height: 86vh;
+  background: var(--color-white);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.modal-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-purple);
+}
+
+.modal-subtitle {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-1);
+}
+
+.modal-search {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.modal-body {
+  overflow: auto;
+}

@@ -19,7 +19,7 @@ export interface LotteryHistory {
  * to the rule's firstYear so wins from before the rule existed never count.
  *
  * A "win" only counts if the team's pick actually improved (moves.spots > 0
- * is assumed to already be pre-filtered when the history file is authored —
+ * is assumed to already be pre-filtered when the history file is authored -
  * see lottery-history.json's own comment).
  */
 export function winsInWindow(team: string, lotteryYear: number, history: LotteryHistory): number {

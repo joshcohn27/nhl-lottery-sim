@@ -7,6 +7,14 @@ export interface TeamStanding {
   regulationWins: number;
   row: number;
   wins: number;
+  losses: number;
+  otLosses: number;
+  /** e.g. "W" or "L" */
+  streakCode: string;
+  streakCount: number;
+  l10Wins: number;
+  l10Losses: number;
+  l10OtLosses: number;
   divisionAbbrev: string;
   conferenceAbbrev: string;
   /** True if this team would make the playoffs if the season ended today (division top-3 + 2 wildcards per conference). Computed by scripts/update-standings.mjs and read as-is here. */

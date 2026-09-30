@@ -1,0 +1,365 @@
+/*
+ * Design tokens for the Tankathon-inspired redesign. Single source of truth
+ * for color, type, and spacing - components should reference these
+ * custom properties rather than hardcoding values.
+ */
+:root {
+  /* Color */
+  --color-purple: #7b5ea7;
+  --color-purple-header: #8e6fc0;
+  --color-purple-dark: #5b3f8c;
+  --color-purple-tint: #f3f0f8;
+  --color-divider: #e3e3e8;
+  --color-text: #333333;
+  --color-text-muted: #6b6b75;
+  --color-white: #ffffff;
+  --color-bg: #ffffff;
+  --color-chip-fallback-text: #ffffff;
+
+  /* Type */
+  --font-sans: "Source Sans 3", "Source Sans Pro", "Open Sans", "Segoe UI", sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 0.95rem;
+  --font-size-md: 1.05rem;
+  --font-size-lg: 1.35rem;
+  --font-size-xl: 1.9rem;
+  --font-size-title: 2.5rem;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 800;
+
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Layout */
+  --content-max-width: 1120px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --header-height: 56px;
+
+  /* Logos */
+  --logo-size: 26px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+.container {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+/* Flat purple button, per spec: filled purple, white bold uppercase text, darker bottom border. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--color-purple);
+  color: var(--color-white);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--font-size-sm);
+  border: none;
+  border-bottom: 3px solid var(--color-purple-dark);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-purple-dark);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: var(--color-white);
+  color: var(--color-purple);
+  border: 2px solid var(--color-purple);
+  border-bottom: 2px solid var(--color-purple);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--color-purple-tint);
+}
+
+.btn-danger {
+  background: #a94442;
+  border-bottom-color: #7a2f2d;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #8f3a38;
+}
+
+/* Page title framed by thin purple rules */
+.page-title-frame {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin: var(--space-8) 0 var(--space-6);
+}
+
+.page-title-frame::before,
+.page-title-frame::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-purple);
+}
+
+.page-title {
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-title);
+  text-align: center;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* Tables */
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-base);
+}
+
+.stat-table th {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--color-divider);
+  white-space: nowrap;
+}
+
+.stat-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: middle;
+}
+
+.stat-table tbody tr:hover {
+  background: var(--color-purple-tint);
+}
+
+.stat-table .tint-col {
+  background: var(--color-purple-tint);
+}
+
+.stat-table .end-of-lottery-row td {
+  background: #ececec;
+  color: #666;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  padding: var(--space-2);
+}
+
+.team-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.team-logo {
+  width: var(--logo-size);
+  height: var(--logo-size);
+  flex: 0 0 var(--logo-size);
+  object-fit: contain;
+}
+
+.team-logo-chip {
+  width: var(--logo-size);
+  height: var(--logo-size);
+  flex: 0 0 var(--logo-size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-chip-fallback-text);
+  background: var(--color-text-muted);
+}
+
+.traded-pick {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.traded-pick .arrow {
+  color: var(--color-purple);
+}
+
+.traded-pick .owner {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Mobile: wide stat tables scroll horizontally with a sticky first (team) column */
+.stat-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 720px) {
+  .stat-table-scroll .stat-table th:nth-child(-n + 2),
+  .stat-table-scroll .stat-table td:nth-child(-n + 2) {
+    position: sticky;
+    background: var(--color-white);
+    z-index: 1;
+  }
+
+  .stat-table-scroll .stat-table th:nth-child(1),
+  .stat-table-scroll .stat-table td:nth-child(1) {
+    left: 0;
+  }
+
+  .stat-table-scroll .stat-table th:nth-child(2),
+  .stat-table-scroll .stat-table td:nth-child(2) {
+    left: 28px;
+  }
+
+  .page-title {
+    font-size: var(--font-size-xl);
+    white-space: normal;
+  }
+
+  .container {
+    padding: 0 var(--space-3);
+  }
+}
+
+/* Header */
+.site-header {
+  background: var(--color-purple-header);
+  color: var(--color-white);
+}
+
+.site-header-inner {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.site-wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-black);
+  font-size: var(--font-size-md);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-white);
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+
+.site-wordmark img {
+  width: 28px;
+  height: 28px;
+}
+
+.site-header-tabs {
+  display: flex;
+  gap: var(--space-6);
+  flex: 1 1 auto;
+  overflow-x: auto;
+}
+
+.site-header-tab {
+  position: relative;
+  color: var(--color-white);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  padding: var(--space-2) 0;
+  white-space: nowrap;
+}
+
+.site-header-tab.active::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 6px);
+  bottom: -1px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--color-white);
+}
+
+@media (max-width: 720px) {
+  .site-header-tabs {
+    gap: var(--space-4);
+  }
+}
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--color-divider);
+  padding: var(--space-6) 0 var(--space-8);
+  margin-top: var(--space-10);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+  line-height: 1.6;
+}

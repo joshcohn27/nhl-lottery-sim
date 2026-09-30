@@ -202,6 +202,13 @@ async function main() {
         regulationWins: row.regulationWins ?? 0,
         row: row.regulationPlusOtWins ?? 0,
         wins: row.wins ?? 0,
+        losses: row.losses ?? 0,
+        otLosses: row.otLosses ?? 0,
+        streakCode: row.streakCode ?? "",
+        streakCount: row.streakCount ?? 0,
+        l10Wins: row.l10Wins ?? 0,
+        l10Losses: row.l10Losses ?? 0,
+        l10OtLosses: row.l10OtLosses ?? 0,
         divisionAbbrev: row.divisionAbbrev,
         conferenceAbbrev: row.conferenceAbbrev,
       };

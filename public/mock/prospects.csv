@@ -1,33 +1,81 @@
 rank,name,pos,league,team
-1,Landon DuPont,RD,WHL,Univ. of Michigan (commit)
+1,Landon DuPont,RD,WHL,Michigan
 2,Nazar Privalov,C/LW,KHL,CSKA Moskva
 3,Sergei Skvortsov,LW,KHL,Torpedo NN
-4,Alexis Joseph,C,QMJHL,Saint John Sea Dogs
-5,Carter Meyer,C,QMJHL,Québec Remparts
+4,Alexis Joseph,C,QMJHL,Saint John
+5,Carter Meyer,C,QMJHL,Quebec
 6,Milan Sundström,C,U20 Nationell,MoDo Hockey
 7,Jonah Neuenschwander,F,NL,EHC Biel-Bienne
-8,Dima Zhilkin,RW,OHL,Saginaw Spirit
-9,Sammy Nelson,F,USHL,U.S. National U18 Team
-10,Brock England,C,WHL,Seattle Thunderbirds
-11,Brock Cripps,RD,WHL,Prince Albert Raiders
+8,Dima Zhilkin,RW,OHL,Saginaw
+9,Sammy Nelson,F,USHL,USDP
+10,Brock England,C,WHL,Seattle
+11,Brock Cripps,RD,WHL,Prince Albert
 12,Andrei Pustovoy,RW/C,MHL,Loko Yaroslavl
-13,Jaxon Jacobson,C,WHL,Brandon Wheat Kings
-14,Timothy Kazda,F,OHL,Guelph Storm
-15,Noah Davidson,F,WHL,Medicine Hat Tigers
-16,Jaakko Wycisk,RW/C,OHL,Guelph Storm
+13,Jaxon Jacobson,C,WHL,Brandon
+14,Timothy Kazda,F,OHL,Guelph
+15,Noah Davidson,F,WHL,Medicine Hat
+16,Jaakko Wycisk,RW/C,OHL,Guelph
 17,Yevgeni Yakunin,C,MHL,MHK Spartak Moskva
 18,Bosse Meijer,C,SHL,Frölunda HC
-19,Luca Santala,F,OHL,London Knights
-20,Jamie Glance,RW/C,QMJHL,Saint John Sea Dogs
-21,Shaeffer Gordon-Carroll,F,WHL,Medicine Hat Tigers
-22,Nolan Fitzhenry,C,USHL,U.S. National U18 Team
-23,Petr Tomek,C,Czechia,HC Energie Karlovy Vary
-24,Malik L'Italien,LD,QMJHL,Halifax Mooseheads
-25,Diego Gutierrez,RD,USHL,U.S. National U18 Team
-26,Ryerson Edgar,C,OHL,Niagara IceDogs
-27,Roberts Naudins,C/LW,WHL,Penticton Vees
-28,Vladimir Shtyrkhunov,RD,QMJHL,Shawinigan Cataractes
-29,Levi Harper,RD,OHL,Saginaw Spirit
+19,Luca Santala,F,OHL,London
+20,Jamie Glance,RW/C,QMJHL,Saint John
+21,Shaeffer Gordon-Carroll,F,WHL,Medicine Hat
+22,Nolan Fitzhenry,C,USHL,USDP
+23,Petr Tomek,C,Czechia,Karlovy Vary
+24,Malik L'Italien,LD,QMJHL,Halifax
+25,Diego Gutierrez,RD,USHL,USDP
+26,Ryerson Edgar,C,OHL,Niagara
+27,Roberts Naudins,C/LW,WHL,Penticton
+28,Vladimir Shtyrkhunov,RD,QMJHL,Shawinigan
+29,Levi Harper,RD,OHL,Saginaw
 30,Tomas Selic,RW,Czechia U20,HC Kometa Brno
 31,Douglas Johnsson,RD,U20 Nationell,Skellefteå AIK
 32,Max Calce,C,DEL,Adler Mannheim
+33,Boston Tait,LD,WHL,Wenatchee
+34,Gunnar Conboy,C,USHL,Green Bay
+35,Kohyn Eshkawkogan,RD,OHL,Ottawa
+36,Kayden Stroeder,F,WHL,Edmonton
+37,Gavin Burcar,F,WHL,Spokane
+38,Maxmilian Mares,F,QMJHL,Rimouski
+39,Aleks Kulemin,C,OHL,Kingston
+40,Dorian Eklund Aspe,F,U20 Nationell,Djurgårdens IF
+41,Johnny McLaughlin,F,OHL,Windsor
+42,Ben Geiger,RD,USHL,USDP
+43,Lenni Kokkonen,RD,U20 SM-sarja,Kärpät
+44,Daniil Yermolov,F,MHL,Krasnaya Armiya
+45,David Huk,C,WHL,Tri-City
+46,Cooper McAslan,RD,OHL,London
+47,James Scantlebury,C,QMJHL,Quebec
+48,Oliver Botka,LD,Slovak,HK Nitra
+49,Filip Kovalcik,LD,QMJHL,Drummondville
+50,Oskars Lūks,LD,WHL,Prince Albert
+51,Lukas Kachlir,RD,Czechia U20,Liberec
+52,Michal Hartl,F,Czechia U20,HC Kometa Brno
+53,Eric Tu,G,WHL,Calgary
+54,Roni Kuukasjärvi,RD,U20 SM-sarja,Ilves
+55,Jake Prunty,RD,USHL,USDP
+56,Daniil Savin,C,MHL,SKA-1946
+57,Rocco Pelosi,C,USHL,USDP
+58,Ilya Kolmakov,LW,QMJHL,Sherbrooke
+59,Jonas Schwarz,RW/C,U20 SM-sarja,Lukko
+60,Cam Warren,F,OHL,North Bay
+61,Loui Karlsson,RW,U20 Nationell,Leksands IF
+62,Benjamin Nyström,F,U20 Nationell,Luleå HF
+63,Oliver Sundberg,RW,U20 Nationell,Djurgårdens IF
+64,Brenner Lammens,C,OHL,Sarnia
+65,Finnegan Sears,LW,USHL,USDP
+66,Trevor Daley Jr.,LW,OHL,Soo
+67,Alex Forrest,LD,OHL,Kitchener
+68,Wiggo Forsberg,F,U20 Nationell,Frölunda HC
+69,Kaden McGregor,C,OHL,Brantford
+70,Keaton Ardagh,RW,OHL,Brampton
+71,Maxim Simko,C,USHL,Muskegon
+72,Charlie Murata,F,OHL,Flint
+73,Easton Walos,C,OHL,Sarnia
+74,Prabh Bhathal,F,WHL,Brandon
+75,Grady Pichette,RD,WHL,Lethbridge
+76,Adam Nemec,LW,OHL,Brantford
+77,Roman Kozhevnikov,LW,VHL,Chelmet Chelyabinsk
+78,Ben Harvey,F,WHL,Prince Albert
+79,Felix Timraz-Westin,G,U20 Nationell,Växjö Lakers
+80,Illarion Babkin,RD,MHL,Spartak-MAH Moskva
