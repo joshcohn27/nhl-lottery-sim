@@ -1,0 +1,66 @@
+{
+  "_comment": "Tracks the NHL's 'no team advances via lottery win more than twice in five draft years' rule (in effect since the 2022 lottery). After each REAL lottery, append that year's moves below - one entry per team whose final pick slot actually improved on its pre-lottery standings slot (a team that keeps its own slot, e.g. the worst team staying at #1, or a draw winner whose pick didn't change, is NOT a qualifying move and should not be added). Each entry should cite its source the same way the ones below do.",
+  "rule": {
+    "maxWins": 2,
+    "windowYears": 5,
+    "firstYear": 2022
+  },
+  "moves": [
+    {
+      "year": 2022,
+      "team": "New Jersey",
+      "spots": 3,
+      "note": "Moved from pre-lottery 5th to 2nd overall.",
+      "source": "NHL.com/devils, \"Devils Get the Second-Overall Pick in 2022 NHL Draft\""
+    },
+    {
+      "year": 2023,
+      "team": "Chicago",
+      "spots": 2,
+      "note": "Moved from pre-lottery 3rd (11.5% odds) to 1st overall (Connor Bedard).",
+      "source": "Forbes, \"Chicago Blackhawks Win NHL's 2023 Draft Lottery\""
+    },
+    {
+      "year": 2024,
+      "team": "San Jose",
+      "spots": 0,
+      "note": "Won the draw for 1st overall but was already the worst team - no slot improvement, does not count.",
+      "source": "NHL.com, \"San Jose Sharks win lottery for top pick in 2024 NHL Draft\""
+    },
+    {
+      "year": 2024,
+      "team": "Chicago",
+      "spots": 0,
+      "note": "Retained pick 2 - first time since 2010 the lottery produced no order change. Does not count despite some secondary sources describing it as a 'win'.",
+      "source": "NHL.com/blackhawks, \"Blackhawks Retain No. 2 Overall Pick in 2024 NHL Draft\""
+    },
+    {
+      "year": 2025,
+      "team": "NY Islanders",
+      "spots": 9,
+      "note": "Moved from pre-lottery 10th (3.5% odds) to 1st overall.",
+      "source": "CBC, \"Islanders secure No. 1 pick in 2025 NHL draft lottery, jumping 9 positions\""
+    },
+    {
+      "year": 2025,
+      "team": "Utah",
+      "spots": 10,
+      "note": "Moved from pre-lottery 14th to 4th overall - the maximum 10-spot move-up. Franchise tracked as Utah (Utah Hockey Club at the time, since renamed Utah Mammoth); no relation to the pre-2024 Arizona Coyotes history.",
+      "source": "Forbes, \"New York Islanders, Utah HC Win Top Picks In 2025 NHL Draft Lottery\""
+    },
+    {
+      "year": 2026,
+      "team": "Toronto",
+      "spots": 4,
+      "note": "Moved from pre-lottery 5th (8.5% odds) to 1st overall.",
+      "source": "NHL.com, \"Maple Leafs win Draft Lottery, will have choice of McKenna or Stenberg at No. 1\""
+    },
+    {
+      "year": 2026,
+      "team": "San Jose",
+      "spots": 7,
+      "note": "Moved from pre-lottery 9th to 2nd overall.",
+      "source": "NHL.com, \"2026 NHL Draft 1st-round order set\""
+    }
+  ]
+}

@@ -1,14 +1,52 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import {
+  DRAFT_YEAR,
+  LOTTERY_COMBOS_BY_SLOT,
+  LOTTERY_ODDS_BY_SLOT,
+  LOTTERY_TEAM_COUNT,
+  MAX_MOVE_UP,
+  SEASON_LABEL,
+} from "./lib/config";
+import { getLotteryPool, isSeasonComplete, sortTeamsWorstFirst, type TeamStanding } from "./lib/standings";
+import {
+  applyRound1Overlay,
+  applyRound2Overlay,
+  type Round1Rule,
+  type Round2Rule,
+} from "./lib/pickTrades";
+import {
+  isEligibleToAdvance,
+  teamsWithAdvanceHistory,
+  type LotteryHistory,
+} from "./lib/lotteryEligibility";
+import {
+  applyLotteryDrawAssignment,
+  didLotteryMoveImprovePick,
+  getAwardedPick,
+  getHighestAllowedPick,
+  getNextOpenLotteryPick,
+  getOccupiedPicks,
+  parseComboCsv,
+  resolveCombo,
+  getAliveSlots,
+  getPossibleFourthBallsBySlot,
+  buildLotterySlots,
+  type LotteryAssignment,
+  type LotteryComboRow,
+} from "./lib/lotteryDraw";
 
-interface StandingTeam {
-  standingRank: number;
-  pick: number;
-  name: string;
-  lottery: boolean;
-  odds: number;
-  combos: number;
-  protected?: { top: number; transferTo: string };
+interface StandingsFile {
+  updated: string | null;
+  seasonId: number;
+  provisional: boolean;
+  provisionalNote?: string;
+  teams: TeamStanding[];
+}
+
+interface PickTradesFile {
+  round1: Round1Rule[];
+  round2: Round2Rule[];
 }
 
 interface Prospect {
@@ -26,20 +64,6 @@ interface DraftPick {
   player: Prospect | null;
 }
 
-interface LotteryComboRow {
-  id: number;
-  balls: [number, number, number, number];
-  team: string;
-  teamCode: string;
-  teamSequence: number | null;
-}
-
-interface LotteryAssignment {
-  team: string;
-  pick: number;
-  source: "draw" | "default";
-}
-
 interface Round2Pick {
   pick: number;
   team: string;
@@ -52,50 +76,10 @@ type ProspectPositionFilter = "all" | "centers" | "wingers" | "forwards" | "defe
 
 const COMBOS_CSV_PATH = "/mock/combos.csv";
 const PROSPECTS_CSV_PATH = "/mock/prospects.csv";
-const INVERSE_STANDINGS_CSV_PATH = "/mock/inverse_standings.csv";
-const REDRAW_COMBO = "11,12,13,14";
-
-const LOTTERY_LOCKED = true;
-
-const LOCKED_DRAFT_ORDER: DraftPick[] = [
-  { team: "Toronto",      pick: 1,  note: "",                 player: null },
-  { team: "San Jose",     pick: 2,  note: "",                 player: null },
-  { team: "Vancouver",    pick: 3,  note: "",                 player: null },
-  { team: "Chicago",      pick: 4,  note: "",                 player: null },
-  { team: "NY Rangers",   pick: 5,  note: "",                 player: null },
-  { team: "Calgary",      pick: 6,  note: "",                 player: null },
-  { team: "Seattle",      pick: 7,  note: "",                 player: null },
-  { team: "Winnipeg",     pick: 8,  note: "",                 player: null },
-  { team: "San Jose",     pick: 9,  note: "(via Florida)",    player: null },
-  { team: "Nashville",    pick: 10, note: "",                 player: null },
-  { team: "St. Louis",    pick: 11, note: "",                 player: null },
-  { team: "New Jersey",   pick: 12, note: "",                 player: null },
-  { team: "NY Islanders", pick: 13, note: "",                 player: null },
-  { team: "Columbus",     pick: 14, note: "",                 player: null },
-  { team: "St. Louis",    pick: 15, note: "(via Detroit)",    player: null },
-  { team: "St. Louis",    pick: 16, note: "(via Washington)", player: null },
-  { team: "Los Angeles",  pick: 17, note: "",                 player: null },
-  { team: "Washington",   pick: 18, note: "(via Anaheim)",    player: null },
-  { team: "Utah",         pick: 19, note: "",                 player: null },
-  { team: "Buffalo",      pick: 20, note: "(via Edmonton)",   player: null },
-  { team: "Philadelphia", pick: 21, note: "",                 player: null },
-  { team: "Pittsburgh",   pick: 22, note: "",                 player: null },
-  { team: "Boston",       pick: 23, note: "",                 player: null },
-  { team: "Vancouver",    pick: 24, note: "(via Minnesota)",  player: null },
-  { team: "Ottawa",       pick: 25, note: "(via Tampa Bay)",  player: null },
-  { team: "NY Rangers",   pick: 26, note: "(via Dallas)",     player: null },
-  { team: "San Jose",     pick: 27, note: "(via Buffalo)",    player: null },
-  { team: "Montreal",     pick: 28, note: "",                 player: null },
-  { team: "St. Louis",    pick: 29, note: "(via Colorado)",   player: null },
-  { team: "Calgary",      pick: 30, note: "(via Vegas)",      player: null },
-  { team: "Carolina",     pick: 31, note: "",                 player: null },
-  { team: "Ottawa",       pick: 32, note: "(via Ottawa)",     player: null },
-];
-
-const ROUND2_CSV_PATH = "/mock/round2_order.csv";
-
-const REAL_PICK_1_BALLS = [7, 2, 11, 12];
-const REAL_PICK_2_BALLS = [11, 4, 3, 7];
+const STANDINGS_JSON_PATH = "/data/standings.json";
+const PICK_TRADES_JSON_PATH = "/data/pick-trades.json";
+const LOTTERY_HISTORY_JSON_PATH = "/data/lottery-history.json";
+const GAMES_IN_SEASON = 84;
 
 const BALL_COLORS: [string, string][] = [
   ["#c0392b", "#e74c3c"],
@@ -147,30 +131,6 @@ function splitCsvLine(line: string): string[] {
   return cells;
 }
 
-function parseComboCsv(csv: string): LotteryComboRow[] {
-  return csv
-    .trim()
-    .split(/\r?\n/)
-    .slice(1)
-    .filter(Boolean)
-    .map((line) => {
-      const [id, ball1, ball2, ball3, ball4, teamCode, teamName, teamSequence] = splitCsvLine(line);
-
-      return {
-        id: Number(id),
-        balls: [Number(ball1), Number(ball2), Number(ball3), Number(ball4)] as [
-          number,
-          number,
-          number,
-          number
-        ],
-        teamCode,
-        team: teamName,
-        teamSequence: teamSequence ? Number(teamSequence) : null,
-      };
-    });
-}
-
 function parseProspectsCsv(csv: string): Prospect[] {
   return csv
     .trim()
@@ -190,39 +150,6 @@ function parseProspectsCsv(csv: string): Prospect[] {
     })
     .filter((prospect) => Number.isFinite(prospect.rank) && prospect.name)
     .sort((a, b) => a.rank - b.rank);
-}
-
-
-function parseInverseStandingsCsv(csv: string): StandingTeam[] {
-  return csv
-    .trim()
-    .split(/\r?\n/)
-    .slice(1)
-    .filter(Boolean)
-    .map((line) => {
-      const [standingRank, pick, team, lottery, odds, combos, protectedTop, transferTo] = splitCsvLine(line);
-      const isLottery = lottery.trim().toLowerCase() === "true" || lottery.trim().toLowerCase() === "yes";
-
-      const parsed: StandingTeam = {
-        standingRank: Number(standingRank),
-        pick: Number(pick),
-        name: team,
-        lottery: isLottery,
-        odds: odds ? Number(odds) : 0,
-        combos: combos ? Number(combos) : 0,
-      };
-
-      if (protectedTop && transferTo) {
-        parsed.protected = {
-          top: Number(protectedTop),
-          transferTo,
-        };
-      }
-
-      return parsed;
-    })
-    .filter((team) => Number.isFinite(team.standingRank) && Number.isFinite(team.pick) && team.name)
-    .sort((a, b) => a.pick - b.pick);
 }
 
 function prospectMatchesPositionFilter(prospect: Prospect, filter: ProspectPositionFilter): boolean {
@@ -248,74 +175,6 @@ function prospectMatchesPositionFilter(prospect: Prospect, filter: ProspectPosit
   return true;
 }
 
-function getAliveTeams(comboRows: LotteryComboRow[], drawnSorted: number[]): Set<string> {
-  const alive = new Set<string>();
-
-  for (const row of comboRows) {
-    if (row.teamCode === "REDRAW") continue;
-    if (drawnSorted.every((ball) => row.balls.includes(ball))) {
-      alive.add(row.team);
-    }
-  }
-
-  return alive;
-}
-
-function getPossibleFourthBallsByTeam(
-  comboRows: LotteryComboRow[],
-  drawnSorted: number[]
-): Record<string, number[]> {
-  if (drawnSorted.length !== 3) return {};
-
-  const map: Record<string, Set<number>> = {};
-
-  for (const row of comboRows) {
-    if (row.teamCode === "REDRAW") continue;
-    if (!drawnSorted.every((ball) => row.balls.includes(ball))) continue;
-
-    const missingBall = row.balls.find((ball) => !drawnSorted.includes(ball));
-    if (missingBall === undefined) continue;
-
-    if (!map[row.team]) map[row.team] = new Set<number>();
-    map[row.team].add(missingBall);
-  }
-
-  return Object.fromEntries(
-    Object.entries(map).map(([team, balls]) => [team, [...balls].sort((a, b) => a - b)])
-  );
-}
-
-function resolveCombo(comboRows: LotteryComboRow[], balls: number[]): LotteryComboRow | null {
-  const sortedKey = [...balls].sort((a, b) => a - b).join(",");
-
-  if (sortedKey === REDRAW_COMBO) {
-    return {
-      id: 1001,
-      balls: [11, 12, 13, 14],
-      team: "Redraw",
-      teamCode: "REDRAW",
-      teamSequence: null,
-    };
-  }
-
-  return comboRows.find((row) => row.balls.join(",") === sortedKey) ?? null;
-}
-
-function resolveProtection(teamName: string, pickNum: number, lotteryTeams: StandingTeam[]): DraftPick {
-  const td = lotteryTeams.find((t) => t.name === teamName);
-  if (!td?.protected) return { team: teamName, pick: pickNum, note: "", player: null };
-
-  const { top, transferTo } = td.protected;
-  if (pickNum <= top) return { team: teamName, pick: pickNum, note: "", player: null };
-
-  return {
-    team: transferTo,
-    pick: pickNum,
-    note: `(via ${teamName}, protected top-${top})`,
-    player: null,
-  };
-}
-
 function escapeHtml(value: string | number | null | undefined): string {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -327,116 +186,6 @@ function escapeHtml(value: string | number | null | undefined): string {
 
 function formatProspectMeta(prospect: Prospect): string {
   return [prospect.pos, prospect.league, prospect.team].filter(Boolean).join(" · ");
-}
-
-function getLotteryRank(teamName: string, lotteryTeams: StandingTeam[]): number {
-  return lotteryTeams.findIndex((team) => team.name === teamName) + 1;
-}
-
-function getHighestAllowedPick(teamName: string, lotteryTeams: StandingTeam[]): number {
-  const rank = getLotteryRank(teamName, lotteryTeams);
-  if (rank <= 0) return lotteryTeams.length || 16;
-
-  return Math.max(1, rank - 10);
-}
-
-function getOccupiedPicks(assignments: LotteryAssignment[]): Set<number> {
-  return new Set(assignments.map((assignment) => assignment.pick));
-}
-
-function getAssignedTeams(assignments: LotteryAssignment[]): Set<string> {
-  return new Set(assignments.map((assignment) => assignment.team));
-}
-
-function getAwardedPick(
-  teamName: string,
-  targetPick: number,
-  occupiedPicks: Set<number>,
-  lotteryTeams: StandingTeam[]
-): number {
-  const highestAllowedPick = getHighestAllowedPick(teamName, lotteryTeams);
-  const lastLotteryPick = lotteryTeams.length || 16;
-  const firstPossiblePick = Math.max(targetPick, highestAllowedPick);
-
-  for (let pick = firstPossiblePick; pick <= lastLotteryPick; pick++) {
-    if (!occupiedPicks.has(pick)) return pick;
-  }
-
-  return firstPossiblePick;
-}
-
-function buildLotterySlots(assignments: LotteryAssignment[], lotteryTeams: StandingTeam[]): Record<number, string> {
-  const slots: Record<number, string> = {};
-  const assignedTeams = getAssignedTeams(assignments);
-  const lastLotteryPick = lotteryTeams.length || 16;
-
-  [...assignments]
-    .sort((a, b) => a.pick - b.pick)
-    .forEach((assignment) => {
-      slots[assignment.pick] = assignment.team;
-    });
-
-  const remainingLotteryTeams = lotteryTeams.map((team) => team.name).filter(
-    (teamName) => !assignedTeams.has(teamName)
-  );
-
-  let remainingIdx = 0;
-
-  for (let pick = 1; pick <= lastLotteryPick; pick++) {
-    if (slots[pick]) continue;
-
-    slots[pick] = remainingLotteryTeams[remainingIdx];
-    remainingIdx++;
-  }
-
-  return slots;
-}
-
-function getNextOpenLotteryPick(assignments: LotteryAssignment[], lotteryTeams: StandingTeam[]): number {
-  const occupiedPicks = getOccupiedPicks(assignments);
-  const lastLotteryPick = lotteryTeams.length || 16;
-
-  for (let pick = 1; pick <= lastLotteryPick; pick++) {
-    if (!occupiedPicks.has(pick)) return pick;
-  }
-
-  return lastLotteryPick;
-}
-
-function getDefaultTeamForPick(
-  assignments: LotteryAssignment[],
-  pick: number,
-  lotteryTeams: StandingTeam[]
-): string | null {
-  return buildLotterySlots(assignments, lotteryTeams)[pick] ?? null;
-}
-
-function applyLotteryDrawAssignment(
-  existingAssignments: LotteryAssignment[],
-  winner: string,
-  targetPick: number,
-  lotteryTeams: StandingTeam[]
-): { assignments: LotteryAssignment[]; awardedPick: number; defaultLockedTeam: string | null } {
-  const occupiedPicks = getOccupiedPicks(existingAssignments);
-  const awardedPick = getAwardedPick(winner, targetPick, occupiedPicks, lotteryTeams);
-  const drawAssignment: LotteryAssignment = { team: winner, pick: awardedPick, source: "draw" };
-  const withWinner = [...existingAssignments, drawAssignment];
-
-  if (awardedPick === targetPick) {
-    return { assignments: withWinner, awardedPick, defaultLockedTeam: null };
-  }
-
-  const defaultLockedTeam = getDefaultTeamForPick(withWinner, targetPick, lotteryTeams);
-
-  if (!defaultLockedTeam || getAssignedTeams(withWinner).has(defaultLockedTeam)) {
-    return { assignments: withWinner, awardedPick, defaultLockedTeam: null };
-  }
-
-  return {
-    assignments: [...withWinner, { team: defaultLockedTeam, pick: targetPick, source: "default" }],
-    awardedPick,
-    defaultLockedTeam,
-  };
 }
 
 function DrawnBall({ n, isNew }: { n: number; isNew: boolean }) {
@@ -501,8 +250,10 @@ export default function App() {
   const [csvStatus, setCsvStatus] = useState("Loading NHL combination table...");
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [prospectStatus, setProspectStatus] = useState("Loading prospects...");
-  const [standingTeams, setStandingTeams] = useState<StandingTeam[]>([]);
-  const [standingsStatus, setStandingsStatus] = useState("Loading inverse standings...");
+  const [standingsFile, setStandingsFile] = useState<StandingsFile | null>(null);
+  const [standingsStatus, setStandingsStatus] = useState("Loading standings...");
+  const [pickTrades, setPickTrades] = useState<PickTradesFile | null>(null);
+  const [lotteryHistory, setLotteryHistory] = useState<LotteryHistory | null>(null);
 
   const [drawnBalls, setDrawnBalls] = useState<number[]>([]);
   const [currentDraw, setCurrentDraw] = useState(1);
@@ -527,8 +278,7 @@ export default function App() {
   const [lookupOpen, setLookupOpen] = useState(false);
   const [lookupSearch, setLookupSearch] = useState("");
 
-  const [round2Order, setRound2Order] = useState<Round2Pick[]>([]);
-  const [round2Picks, setRound2Picks] = useState<Round2Pick[]>([]);
+  const [round2Assignments, setRound2Assignments] = useState<Record<number, Prospect>>({});
   const [round2PickIdx, setRound2PickIdx] = useState(0);
   const [mockRounds, setMockRounds] = useState<1 | 2>(1);
   const [roundsSelected, setRoundsSelected] = useState(false);
@@ -567,61 +317,43 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetch(INVERSE_STANDINGS_CSV_PATH)
+    fetch(STANDINGS_JSON_PATH)
       .then((res) => {
-        if (!res.ok) throw new Error("Inverse standings CSV not found");
-        return res.text();
+        if (!res.ok) throw new Error("standings.json not found");
+        return res.json();
       })
-      .then((text) => {
-        const parsed = parseInverseStandingsCsv(text);
-        setStandingTeams(parsed);
-        setStandingsStatus(`Loaded ${parsed.length} inverse standings rows.`);
+      .then((data: StandingsFile) => {
+        setStandingsFile(data);
+        setStandingsStatus(
+          data.provisional
+            ? `Provisional order (${data.teams.length} teams) - seeded from last season, not yet live.`
+            : `Standings last updated ${new Date(data.updated ?? "").toLocaleString()}.`
+        );
       })
       .catch(() => {
-        setStandingsStatus("Could not load inverse_standings.csv. Make sure inverse_standings.csv is in /public/mock.");
+        setStandingsStatus("Could not load standings.json. Make sure it exists at /public/data/standings.json.");
       });
   }, []);
 
   useEffect(() => {
-    fetch(ROUND2_CSV_PATH)
+    fetch(PICK_TRADES_JSON_PATH)
       .then((res) => {
-        if (!res.ok) throw new Error("Round 2 CSV not found");
-        return res.text();
+        if (!res.ok) throw new Error("pick-trades.json not found");
+        return res.json();
       })
-      .then((text) => {
-        const rows = text
-          .trim()
-          .split(/\r?\n/)
-          .slice(1)
-          .filter(Boolean)
-          .map((line) => {
-            const [pick, team, note, forfeited] = splitCsvLine(line);
-            return {
-              pick: Number(pick),
-              team,
-              note: note ?? "",
-              forfeited: forfeited?.trim().toLowerCase() === "true",
-              player: null,
-            };
-          });
-        setRound2Order(rows);
-      })
-      .catch(() => {
-        console.warn("Could not load round2_order.csv");
-      });
+      .then((data: PickTradesFile) => setPickTrades(data))
+      .catch(() => console.warn("Could not load pick-trades.json"));
   }, []);
 
   useEffect(() => {
-    if (!LOTTERY_LOCKED) return;
-    setDraftPicks(LOCKED_DRAFT_ORDER);
-    setLottoDone(true);
-    setLottoPhase("draft");
+    fetch(LOTTERY_HISTORY_JSON_PATH)
+      .then((res) => {
+        if (!res.ok) throw new Error("lottery-history.json not found");
+        return res.json();
+      })
+      .then((data: LotteryHistory) => setLotteryHistory(data))
+      .catch(() => console.warn("Could not load lottery-history.json"));
   }, []);
-
-  useEffect(() => {
-    if (!LOTTERY_LOCKED || round2Order.length === 0) return;
-    setRound2Picks(round2Order.map((r) => ({ ...r, player: null })));
-  }, [round2Order]);
 
   useEffect(() => {
     if (!lookupOpen) return;
@@ -636,14 +368,44 @@ export default function App() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [lookupOpen]);
 
+  const seasonComplete = useMemo(
+    () => (standingsFile ? isSeasonComplete(standingsFile.teams, GAMES_IN_SEASON) : false),
+    [standingsFile]
+  );
+
+  const lotteryPool = useMemo(() => {
+    if (!standingsFile) return { lotteryTeams: [], otherTeams: [] };
+    return getLotteryPool(standingsFile.teams, LOTTERY_TEAM_COUNT, seasonComplete);
+  }, [standingsFile, seasonComplete]);
+
   const lotteryTeams = useMemo(
-    () => standingTeams.filter((team) => team.lottery).sort((a, b) => a.pick - b.pick),
-    [standingTeams]
+    () =>
+      lotteryPool.lotteryTeams.map((team, idx) => ({
+        name: team.name,
+        pick: idx + 1,
+        odds: LOTTERY_ODDS_BY_SLOT[idx] ?? 0,
+        combos: LOTTERY_COMBOS_BY_SLOT[idx] ?? 0,
+      })),
+    [lotteryPool.lotteryTeams]
   );
 
   const nonLotteryTeams = useMemo(
-    () => standingTeams.filter((team) => !team.lottery).sort((a, b) => a.pick - b.pick),
-    [standingTeams]
+    () =>
+      lotteryPool.otherTeams.map((team, idx) => ({
+        name: team.name,
+        pick: LOTTERY_TEAM_COUNT + idx + 1,
+      })),
+    [lotteryPool.otherTeams]
+  );
+
+  const teamsWithRound1Condition = useMemo(
+    () => new Set((pickTrades?.round1 ?? []).map((rule) => (rule.type === "unconditional" ? rule.from : rule.team))),
+    [pickTrades]
+  );
+
+  const advanceHistory = useMemo(
+    () => (lotteryHistory ? teamsWithAdvanceHistory(DRAFT_YEAR, lotteryHistory) : []),
+    [lotteryHistory]
   );
 
   const sortedDrawn = useMemo(() => [...drawnBalls].sort((a, b) => a - b), [drawnBalls]);
@@ -653,12 +415,26 @@ export default function App() {
       return new Set(lotteryTeams.map((t) => t.name));
     }
 
-    return getAliveTeams(comboRows, sortedDrawn);
+    const aliveSlots = getAliveSlots(comboRows, sortedDrawn);
+    return new Set(
+      [...aliveSlots]
+        .map((slot) => lotteryTeams[slot - 1]?.name)
+        .filter((name): name is string => Boolean(name))
+    );
   }, [comboRows, drawnBalls.length, lottoDone, lotteryTeams, sortedDrawn]);
 
   const possibleFourthBallsByTeam = useMemo(() => {
     if (drawnBalls.length !== 3 || lottoDone) return {};
-    return getPossibleFourthBallsByTeam(comboRows, sortedDrawn);
+
+    const bySlot = getPossibleFourthBallsBySlot(comboRows, sortedDrawn);
+    const byTeam: Record<string, number[]> = {};
+
+    Object.entries(bySlot).forEach(([slotStr, balls]) => {
+      const name = lotteryTeams[Number(slotStr) - 1]?.name;
+      if (name) byTeam[name] = balls;
+    });
+
+    return byTeam;
   }, [comboRows, drawnBalls.length, lottoDone, lotteryTeams, sortedDrawn]);
 
   const comboDisplay = [0, 1, 2, 3]
@@ -768,6 +544,26 @@ export default function App() {
     [draftActionDisabled, prospects]
   );
 
+  const round2Base = useMemo((): Round2Pick[] => {
+    if (!standingsFile || !pickTrades) return [];
+
+    const worstFirst = sortTeamsWorstFirst(standingsFile.teams);
+    const base = worstFirst.map((team, idx) => ({
+      pick: LOTTERY_TEAM_COUNT * 2 + idx + 1,
+      team: team.name,
+      note: "",
+      forfeited: false,
+      player: null as Prospect | null,
+    }));
+
+    return applyRound2Overlay(base, pickTrades.round2);
+  }, [standingsFile, pickTrades]);
+
+  const round2Picks = useMemo(
+    () => round2Base.map((p) => ({ ...p, player: round2Assignments[p.pick] ?? null })),
+    [round2Base, round2Assignments]
+  );
+
   const safelyAssignRound2Picks = useCallback(
     (mode: "manual" | "auto-next" | "auto-all", manualProspect?: Prospect | null) => {
       if (pickLockRef.current) return;
@@ -807,80 +603,96 @@ export default function App() {
         return scored[0]?.prospect;
       };
 
-      setRound2Picks((prev) => {
-        const updated = [...prev];
-        const latestTaken = new Set<number>();
+      const updated = [...round2Picks];
+      const latestTaken = new Set<number>();
 
-        draftPicks.forEach((p) => { if (p.player) latestTaken.add(p.player.rank); });
-        updated.forEach((p) => { if (p.player) latestTaken.add(p.player.rank); });
+      draftPicks.forEach((p) => { if (p.player) latestTaken.add(p.player.rank); });
+      updated.forEach((p) => { if (p.player) latestTaken.add(p.player.rank); });
 
-        const nextOpenIdx = updated.findIndex((p) => !p.player && !p.forfeited);
+      const commitAssignments = () => {
+        const assignments: Record<number, Prospect> = {};
+        updated.forEach((p) => {
+          if (p.player) assignments[p.pick] = p.player;
+        });
+        setRound2Assignments(assignments);
+      };
 
-        if (nextOpenIdx === -1) {
-          setRound2PickIdx(updated.length);
-          setTakenProspects(latestTaken);
-          setSelectedProspect(null);
-          pickLockRef.current = false;
-          return updated;
-        }
+      const nextOpenIdx = updated.findIndex((p) => !p.player && !p.forfeited);
 
-        if (mode === "manual") {
-          if (!manualProspect || latestTaken.has(manualProspect.rank)) {
-            pickLockRef.current = false;
-            return updated;
-          }
-          updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: manualProspect };
-          latestTaken.add(manualProspect.rank);
-        }
-
-        if (mode === "auto-next") {
-          const teamName = updated[nextOpenIdx].team;
-          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
-          if (!pick) { pickLockRef.current = false; return updated; }
-          updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: pick };
-          latestTaken.add(pick.rank);
-        }
-
-        if (mode === "auto-all") {
-          let idx = nextOpenIdx;
-          while (idx < updated.length) {
-            if (updated[idx].player || updated[idx].forfeited) { idx++; continue; }
-            const teamName = updated[idx].team;
-            const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
-            if (!pick) break;
-            updated[idx] = { ...updated[idx], player: pick };
-            latestTaken.add(pick.rank);
-            idx++;
-          }
-        }
-
-        const nextIdx = updated.findIndex((p) => !p.player && !p.forfeited);
-        setRound2PickIdx(nextIdx === -1 ? updated.length : nextIdx);
+      if (nextOpenIdx === -1) {
+        setRound2PickIdx(updated.length);
         setTakenProspects(latestTaken);
         setSelectedProspect(null);
         pickLockRef.current = false;
-        return updated;
-      });
+        return;
+      }
+
+      if (mode === "manual") {
+        if (!manualProspect || latestTaken.has(manualProspect.rank)) {
+          pickLockRef.current = false;
+          return;
+        }
+        updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: manualProspect };
+        latestTaken.add(manualProspect.rank);
+      }
+
+      if (mode === "auto-next") {
+        const teamName = updated[nextOpenIdx].team;
+        const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+        if (!pick) { pickLockRef.current = false; return; }
+        updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: pick };
+        latestTaken.add(pick.rank);
+      }
+
+      if (mode === "auto-all") {
+        let idx = nextOpenIdx;
+        while (idx < updated.length) {
+          if (updated[idx].player || updated[idx].forfeited) { idx++; continue; }
+          const teamName = updated[idx].team;
+          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+          if (!pick) break;
+          updated[idx] = { ...updated[idx], player: pick };
+          latestTaken.add(pick.rank);
+          idx++;
+        }
+      }
+
+      const nextIdx = updated.findIndex((p) => !p.player && !p.forfeited);
+      setRound2PickIdx(nextIdx === -1 ? updated.length : nextIdx);
+      setTakenProspects(latestTaken);
+      setSelectedProspect(null);
+      commitAssignments();
+      pickLockRef.current = false;
     },
-    [draftPicks, prospects]
+    [draftPicks, prospects, round2Picks]
   );
 
-  const currentTargetPick = useMemo(() => getNextOpenLotteryPick(lotteryAssignments, lotteryTeams), [lotteryAssignments, lotteryTeams]);
+  const currentTargetPick = useMemo(
+    () => getNextOpenLotteryPick(lotteryAssignments, lotteryTeams.length),
+    [lotteryAssignments, lotteryTeams.length]
+  );
 
-  const buildOrderFromLotteryAssignments = useCallback((assignments: LotteryAssignment[]) => {
-    const slots = buildLotterySlots(assignments, lotteryTeams);
-    const order: DraftPick[] = [];
+  const buildOrderFromLotteryAssignments = useCallback(
+    (assignments: LotteryAssignment[]) => {
+      const lotteryTeamNames = lotteryTeams.map((t) => t.name);
+      const slots = buildLotterySlots(assignments, lotteryTeamNames);
 
-    lotteryTeams.forEach((team) => {
-      order.push(resolveProtection(slots[team.pick], team.pick, lotteryTeams));
-    });
+      const round1Base: DraftPick[] = [
+        ...lotteryTeams.map((team) => ({
+          team: slots[team.pick] ?? team.name,
+          pick: team.pick,
+          note: "",
+          player: null,
+        })),
+        ...nonLotteryTeams.map((team) => ({ team: team.name, pick: team.pick, note: "", player: null })),
+      ];
 
-    nonLotteryTeams.forEach((team) => {
-      order.push({ team: team.name, pick: team.pick, note: "", player: null });
-    });
+      const withOverlay = pickTrades ? applyRound1Overlay(round1Base, pickTrades.round1) : round1Base;
 
-    return order.sort((a, b) => a.pick - b.pick);
-  }, [lotteryTeams, nonLotteryTeams]);
+      return [...withOverlay].sort((a, b) => a.pick - b.pick);
+    },
+    [lotteryTeams, nonLotteryTeams, pickTrades]
+  );
 
   const finalizeLottery = useCallback(
     (assignments: LotteryAssignment[]) => {
@@ -900,7 +712,7 @@ export default function App() {
     (balls: number[], draw: number, p1w: string | null, assignmentsBeforeDraw: LotteryAssignment[]) => {
       const resolved = resolveCombo(comboRows, balls);
 
-      if (!resolved || resolved.teamCode === "REDRAW") {
+      if (!resolved || resolved === "redraw") {
         setResultLabel("REDRAW — Invalid combo [11-12-13-14]");
         setResultTeam("");
 
@@ -913,7 +725,9 @@ export default function App() {
         return;
       }
 
-      const winner = resolved.team;
+      const winner = lotteryTeams[resolved.slot - 1]?.name;
+      if (!winner) return;
+
       const alreadyAssigned = assignmentsBeforeDraw.some((assignment) => assignment.team === winner);
 
       if (alreadyAssigned || winner === p1w) {
@@ -930,12 +744,33 @@ export default function App() {
         return;
       }
 
-      const targetPick = getNextOpenLotteryPick(assignmentsBeforeDraw, lotteryTeams);
+      const targetPick = getNextOpenLotteryPick(assignmentsBeforeDraw, lotteryTeams.length);
+      const highestAllowedPick = getHighestAllowedPick(resolved.slot, MAX_MOVE_UP, lotteryTeams.length);
+      const occupiedPicks = getOccupiedPicks(assignmentsBeforeDraw);
+      const speculativeAwardedPick = getAwardedPick(targetPick, highestAllowedPick, occupiedPicks, lotteryTeams.length);
+      const wouldImprove = didLotteryMoveImprovePick(resolved.slot, speculativeAwardedPick);
+
+      if (wouldImprove && lotteryHistory && !isEligibleToAdvance(winner, DRAFT_YEAR, lotteryHistory)) {
+        setResultLabel(`REDRAW — ${winner} ineligible (lottery win limit)`);
+        setResultTeam(winner);
+
+        setTimeout(() => {
+          setDrawnBalls([]);
+          setNewBallIdx(null);
+          setResultLabel(`Draw ${draw} ready`);
+          setResultTeam("");
+        }, 1800);
+
+        return;
+      }
+
+      const lotteryTeamNames = lotteryTeams.map((t) => t.name);
       const { assignments, awardedPick, defaultLockedTeam } = applyLotteryDrawAssignment(
         assignmentsBeforeDraw,
         winner,
         targetPick,
-        lotteryTeams
+        highestAllowedPick,
+        lotteryTeamNames
       );
 
       if (draw === 1) {
@@ -950,7 +785,7 @@ export default function App() {
         );
 
         setTimeout(() => {
-          const nextPick = getNextOpenLotteryPick(assignments, lotteryTeams);
+          const nextPick = getNextOpenLotteryPick(assignments, lotteryTeams.length);
           setCurrentDraw(2);
           setDrawnBalls([]);
           setNewBallIdx(null);
@@ -973,7 +808,7 @@ export default function App() {
 
       finalizeLottery(assignments);
     },
-    [comboRows, finalizeLottery, lotteryTeams]
+    [comboRows, finalizeLottery, lotteryHistory, lotteryTeams]
   );
 
   const drawOneBall = useCallback(() => {
@@ -1031,37 +866,11 @@ export default function App() {
     setPositionFilter("all");
     setNewBallIdx(null);
     setCopyLabel("Copy Results");
-    setRound2Picks([]);
+    setRound2Assignments({});
     setRound2PickIdx(0);
     setCurrentRound(1);
     setRoundsSelected(false);
   }, []);
-
-  const useRealResults = useCallback(() => {
-    if (comboRows.length === 0 || lotteryTeams.length === 0) return;
-
-    resetLottery();
-
-    setDrawnBalls(REAL_PICK_2_BALLS);
-    setCurrentDraw(2);
-    setPick1Winner("Toronto");
-    setPick2Winner("San Jose");
-    setPick1AwardedSlot(1);
-    setPick2AwardedSlot(2);
-    setResultLabel("Real 2026 NHL lottery result");
-    setResultTeam("Toronto — Pick 1 · San Jose — Pick 2");
-
-    const realAssignments: LotteryAssignment[] = [
-      { team: "Toronto", pick: 1, source: "draw" },
-      { team: "San Jose", pick: 2, source: "draw" },
-    ];
-
-    setLotteryAssignments(realAssignments);
-    finalizeLottery(realAssignments);
-
-    setLottoDone(true);
-    setNewBallIdx(null);
-  }, [comboRows.length, finalizeLottery, lotteryTeams.length, resetLottery]);
 
   const makePick = useCallback(() => {
     safelyAssignPicks("manual", selectedProspect);
@@ -1081,7 +890,7 @@ export default function App() {
       ? "\n\nRound 2\n\n" + round2Picks.map((p) => p.forfeited ? `${p.pick}. FORFEITED (${p.note})` : `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "—"}`).join("\n")
       : "";
 
-    navigator.clipboard.writeText(`2026 NHL Mock Draft - Round 1\n\n${r1lines}${r2lines}`).then(() => {
+    navigator.clipboard.writeText(`${DRAFT_YEAR} NHL Mock Draft - Round 1\n\n${r1lines}${r2lines}`).then(() => {
       setCopyLabel("Copied!");
       setTimeout(() => setCopyLabel("Copy Results"), 2000);
     });
@@ -1149,7 +958,7 @@ export default function App() {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>2026 NHL Mock Draft - Round 1</title>
+  <title>${DRAFT_YEAR} NHL Mock Draft - Round 1</title>
   <style>
     * {
       box-sizing: border-box;
@@ -1365,7 +1174,7 @@ export default function App() {
   <main class="page">
     <div class="header">
       <div>
-        <h1>2026 NHL Mock Draft</h1>
+        <h1>${DRAFT_YEAR} NHL Mock Draft</h1>
         <div class="subtitle">Round 1 · Picks 1-32</div>
       </div>
       <div class="status">${isDraftDone && (mockRounds === 1 || round2Picks.every((p) => p.player || p.forfeited)) ? "Draft Complete" : "Draft In Progress"}</div>
@@ -1394,7 +1203,7 @@ export default function App() {
       <div style="break-before:page; margin-top:0">
         <div class="header" style="margin-top:0.18in">
           <div>
-            <h1>2026 NHL Mock Draft</h1>
+            <h1>${DRAFT_YEAR} NHL Mock Draft</h1>
             <div class="subtitle">Round 2 · Picks 33-64</div>
           </div>
           <div class="status">${round2Picks.every((p) => p.player || p.forfeited) ? "Round 2 Complete" : "Round 2 In Progress"}</div>
@@ -1434,7 +1243,7 @@ export default function App() {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "2026-nhl-mock-draft.html";
+    link.download = `${DRAFT_YEAR}-nhl-mock-draft.html`;
     link.click();
 
     URL.revokeObjectURL(url);
@@ -1452,6 +1261,14 @@ export default function App() {
     return !takenProspects.has(p.rank) && matchesSearch && prospectMatchesPositionFilter(p, positionFilter);
   });
 
+  const comboRowTeamName = useCallback(
+    (row: LotteryComboRow) => {
+      if (!Number.isFinite(row.slot)) return "Redraw";
+      return lotteryTeams[row.slot - 1]?.name ?? `Slot ${row.slot}`;
+    },
+    [lotteryTeams]
+  );
+
   const filteredComboRows = useMemo(() => {
     const searchLower = lookupSearch.trim().toLowerCase();
 
@@ -1461,19 +1278,20 @@ export default function App() {
       const ballDashText = row.balls.join("-");
       const ballCommaText = row.balls.join(",");
       const ballSpaceText = row.balls.join(" ");
-      const sequenceText = row.teamSequence === null ? "" : String(row.teamSequence);
+      const sequenceText = row.slotSequence === null ? "" : String(row.slotSequence);
+      const teamName = comboRowTeamName(row);
 
       return (
         String(row.id).includes(searchLower) ||
-        row.team.toLowerCase().includes(searchLower) ||
-        row.teamCode.toLowerCase().includes(searchLower) ||
+        teamName.toLowerCase().includes(searchLower) ||
+        String(row.slot).includes(searchLower) ||
         sequenceText.includes(searchLower) ||
         ballDashText.includes(searchLower) ||
         ballCommaText.includes(searchLower) ||
         ballSpaceText.includes(searchLower)
       );
     });
-  }, [comboRows, lookupSearch]);
+  }, [comboRows, comboRowTeamName, lookupSearch]);
 
   const S: Record<string, CSSProperties> = {
     app: {
@@ -1722,15 +1540,24 @@ export default function App() {
       `}</style>
 
       <header style={S.header}>
-        <h1 style={S.h1}>{LOTTERY_LOCKED ? "2026 NHL Mock Draft Simulator" : "2026 NHL Draft Lottery Simulator"}</h1>
+        <h1 style={S.h1}>
+          {lottoPhase === "draft" ? `${DRAFT_YEAR} NHL Mock Draft Simulator` : `${DRAFT_YEAR} NHL Draft Lottery Simulator`}
+        </h1>
         <div style={S.sub}>
-          {LOTTERY_LOCKED
-            ? "Build your 2026 NHL first-round mock draft."
-            : "Simulate the 2026 NHL Draft Lottery, search NHL draft lottery combos, and build a full first-round NHL mock draft."}
+          {lottoPhase === "draft"
+            ? `Build your ${DRAFT_YEAR} NHL first-round mock draft.`
+            : `Simulate the ${DRAFT_YEAR} NHL Draft Lottery, search NHL draft lottery combos, and build a full first-round NHL mock draft.`}
         </div>
-        {/* <div style={S.sub}>
+        <div style={{ ...S.sub, marginTop: 8 }}>
+          {standingsFile?.provisional
+            ? `Projected order — seeded from the ${SEASON_LABEL === "2026-27" ? "2025-26" : "prior season"} final standings, ${SEASON_LABEL} season not yet underway.`
+            : seasonComplete
+              ? `Final order — ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
+              : `Projected order — ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}
+        </div>
+        <div style={{ ...S.sub, fontSize: 11, opacity: 0.7 }}>
           {csvStatus} · {prospectStatus} · {standingsStatus}
-        </div> */}
+        </div>
       </header>
 
       {lottoPhase === "lottery" && (
@@ -1777,13 +1604,6 @@ export default function App() {
                 Simulate Draw
               </button>
               <button
-                style={btn({ background: "#1d4ed8", color: "#dbeafe", borderColor: "#2563eb" })}
-                onClick={useRealResults}
-                disabled={comboRows.length === 0 || lotteryTeams.length === 0}
-              >
-                Use Real Result
-              </button>
-              <button
                 style={btn({ color: "#f5c842", borderColor: "#f5c842" })}
                 onClick={() => setLookupOpen(true)}
                 disabled={comboRows.length === 0 || lotteryTeams.length === 0}
@@ -1810,11 +1630,7 @@ export default function App() {
             <div style={{ fontSize: 14, color: "#94a3b8", textAlign: "center", lineHeight: 1.5 }}>
               {drawnBalls.length === 3 && !lottoDone
                 ? "After three balls, the team list shows which fourth ball would complete each alive combination."
-                : "Draw manually, simulate the remaining balls, or use the real-life lottery result."}
-              <div style={{ marginTop: 6 }}>
-                Real-result mode uses Toronto for Pick 1 ({REAL_PICK_1_BALLS.join(", ")}) and San Jose for Pick 2 (
-                {REAL_PICK_2_BALLS.join(", ")}).
-              </div>
+                : "Draw manually or simulate the remaining balls."}
             </div>
           </section>
 
@@ -1829,6 +1645,27 @@ export default function App() {
                     : `Draw ${currentDraw} of 2`}
             </div>
 
+            {advanceHistory.length > 0 && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#94a3b8",
+                  background: "#1a2236",
+                  border: "1px solid #2d3a50",
+                  borderRadius: 10,
+                  padding: "8px 10px",
+                  marginTop: 10,
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong style={{ color: "#7dd3f5" }}>
+                  Advance history ({DRAFT_YEAR - 4}-{DRAFT_YEAR - 1}):
+                </strong>{" "}
+                {advanceHistory.map((h) => `${h.team} (${h.wins})`).join(", ")} — one more lottery advance within
+                this window would make that team ineligible to move up.
+              </div>
+            )}
+
             <div style={S.oddsTitle}>Lottery Teams</div>
             {lotteryTeams.map((team, idx) => {
               const isP1 = pick1Winner === team.name;
@@ -1842,7 +1679,7 @@ export default function App() {
               const fourthBalls = possibleFourthBallsByTeam[team.name] ?? [];
               const assignedLotteryPick = lottoDone
                 ? Number(
-                  Object.entries(buildLotterySlots(lotteryAssignments, lotteryTeams)).find(
+                  Object.entries(buildLotterySlots(lotteryAssignments, lotteryTeams.map((t) => t.name))).find(
                     ([, slotTeam]) => slotTeam === team.name
                   )?.[0] ?? idx + 1
                 )
@@ -1893,7 +1730,7 @@ export default function App() {
                       }}
                     >
                       {team.name}
-                      {team.protected ? "*" : ""}
+                      {teamsWithRound1Condition.has(team.name) ? "*" : ""}
                       {isAlive && !lottoDone && (
                         <span
                           style={{
@@ -2074,14 +1911,12 @@ export default function App() {
         <div style={S.draftSection}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, letterSpacing: 2, color: "#f5c842", textTransform: "uppercase" }}>
-              2026 Mock Draft — Round 1
+              {DRAFT_YEAR} Mock Draft — Round 1
             </h2>
             <div style={S.btnRow}>
-              {!LOTTERY_LOCKED && (
-                <button style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })} onClick={() => setLottoPhase("lottery")}>
-                  Back to Lottery
-                </button>
-              )}
+              <button style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })} onClick={() => setLottoPhase("lottery")}>
+                Back to Lottery
+              </button>
               <button
                 style={draftActionDisabled ? disabledBtn({ color: "#22c55e", borderColor: "#22c55e" }) : btn({ color: "#22c55e", borderColor: "#22c55e" })}
                 onClick={autoPickAll}
@@ -2207,7 +2042,7 @@ export default function App() {
         <div style={S.draftSection}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, letterSpacing: 2, color: "#f5c842", textTransform: "uppercase" }}>
-              2026 Mock Draft — Round 2
+              {DRAFT_YEAR} Mock Draft — Round 2
             </h2>
             <div style={S.btnRow}>
               <button style={btn({ color: "#7dd3f5", borderColor: "#7dd3f5" })} onClick={() => setCurrentRound(1)}>Back to Round 1</button>
@@ -2479,7 +2314,7 @@ export default function App() {
                         width: 130,
                       }}
                     >
-                      Code
+                      Slot
                     </th>
                     <th
                       style={{
@@ -2499,57 +2334,60 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredComboRows.map((row, idx) => (
-                    <tr
-                      key={`${row.id}-${row.teamCode}-${row.balls.join("-")}`}
-                      style={{
-                        background: idx % 2 === 0 ? "#111827" : "#0f172a",
-                      }}
-                    >
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #1f2937", color: "#94a3b8" }}>
-                        {row.id}
-                      </td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #1f2937" }}>
-                        <span
+                  {filteredComboRows.map((row, idx) => {
+                    const isRedraw = !Number.isFinite(row.slot);
+                    return (
+                      <tr
+                        key={`${row.id}-${row.balls.join("-")}`}
+                        style={{
+                          background: idx % 2 === 0 ? "#111827" : "#0f172a",
+                        }}
+                      >
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #1f2937", color: "#94a3b8" }}>
+                          {row.id}
+                        </td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #1f2937" }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              gap: 5,
+                              alignItems: "center",
+                              color: "#f5c842",
+                              fontFamily: "'Barlow Condensed', sans-serif",
+                              fontSize: 18,
+                              fontWeight: 800,
+                              letterSpacing: 1,
+                            }}
+                          >
+                            {row.balls.map((ball) => String(ball).padStart(2, "0")).join(" - ")}
+                          </span>
+                        </td>
+                        <td
                           style={{
-                            display: "inline-flex",
-                            gap: 5,
-                            alignItems: "center",
-                            color: "#f5c842",
-                            fontFamily: "'Barlow Condensed', sans-serif",
-                            fontSize: 18,
-                            fontWeight: 800,
-                            letterSpacing: 1,
+                            padding: "10px 14px",
+                            borderBottom: "1px solid #1f2937",
+                            color: isRedraw ? "#ef4444" : "#e2e8f0",
+                            fontWeight: 700,
                           }}
                         >
-                          {row.balls.map((ball) => String(ball).padStart(2, "0")).join(" - ")}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: "10px 14px",
-                          borderBottom: "1px solid #1f2937",
-                          color: row.teamCode === "REDRAW" ? "#ef4444" : "#e2e8f0",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {row.team}
-                      </td>
-                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #1f2937", color: "#94a3b8" }}>
-                        {row.teamCode}
-                      </td>
-                      <td
-                        style={{
-                          padding: "10px 14px",
-                          borderBottom: "1px solid #1f2937",
-                          color: "#94a3b8",
-                          textAlign: "right",
-                        }}
-                      >
-                        {row.teamSequence ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
+                          {comboRowTeamName(row)}
+                        </td>
+                        <td style={{ padding: "10px 14px", borderBottom: "1px solid #1f2937", color: "#94a3b8" }}>
+                          {isRedraw ? "—" : row.slot}
+                        </td>
+                        <td
+                          style={{
+                            padding: "10px 14px",
+                            borderBottom: "1px solid #1f2937",
+                            color: "#94a3b8",
+                            textAlign: "right",
+                          }}
+                        >
+                          {row.slotSequence ?? "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
 
                   {filteredComboRows.length === 0 && (
                     <tr>

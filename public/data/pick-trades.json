@@ -1,0 +1,86 @@
+{
+  "_comment": "2027 traded-pick overlay, applied on top of the standings-derived draft order (see src/lib/pickTrades.ts). Verified against Wikipedia's '2027 NHL entry draft' article (which cites NHL.com/TSN/team press releases) on 2026-09-29/30. protectedTopN/splitRecipient conditions are checked against each team's FINAL post-lottery pick slot.",
+  "round1": [
+    {
+      "type": "unconditional",
+      "from": "Florida",
+      "to": "Chicago",
+      "source": "Wikipedia: 2027 NHL entry draft, Round one #1 - condition converted April 16, 2026 (Daily Faceoff, \"Panthers to keep 2026 first-round pick; will transfer 2027 pick to Blackhawks\")"
+    },
+    {
+      "type": "protectedTopN",
+      "team": "Colorado",
+      "topN": 10,
+      "transferTo": "Toronto",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Nicolas Roy trade (NHL.com, March 5, 2026)"
+    },
+    {
+      "type": "protectedTopN",
+      "team": "Edmonton",
+      "topN": 12,
+      "transferTo": "Chicago",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Dickinson/Dach-for-Mangiapane trade (NHL.com, March 4, 2026). Note: real condition also triggers if Edmonton trades its 2028 1st before the 2027 deadline - not standings-derivable, not modeled."
+    },
+    {
+      "type": "protectedTopN",
+      "team": "Tampa Bay",
+      "topN": 10,
+      "transferTo": "Seattle",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Bjorkstrand/Aucoin trade (NHL.com, March 5, 2025)"
+    },
+    {
+      "type": "protectedTopN",
+      "team": "Vegas",
+      "topN": 10,
+      "transferTo": "New Jersey",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Andersson/Nemec multi-team trades (NHL.com, Jan 18 & June 23, 2026)"
+    },
+    {
+      "type": "splitRecipient",
+      "team": "Toronto",
+      "topN": 10,
+      "outsideTopNRecipient": "Philadelphia",
+      "insideTopNLabel": "Toronto (pending: Boston or Philadelphia)",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Carlo trade (Boston) and Laughton trade (Philadelphia), both NHL.com March 7, 2025. Toronto's own pick never stays with Toronto; if it lands in the top 10, Toronto chooses which of Boston/Philadelphia receives it."
+    }
+  ],
+  "round2": [
+    { "type": "unconditional", "from": "Boston", "to": "NY Rangers", "source": "Wikipedia: 2027 NHL entry draft, Round two #1 - Will Borgen trade (NHL.com, July 1, 2026)" },
+    { "type": "unconditional", "from": "Buffalo", "to": "Winnipeg", "source": "Wikipedia: 2027 NHL entry draft, Round two #2 - Stanley/Schenn trade (NHL.com, March 6, 2026)" },
+    { "type": "unconditional", "from": "Columbus", "to": "Seattle", "source": "Wikipedia: 2027 NHL entry draft, Round two #3 - Mason Marchment trade (NHL.com, December 19-20, 2025)" },
+    { "type": "unconditional", "from": "Dallas", "to": "Vancouver", "source": "Wikipedia: 2027 NHL entry draft, Round two #4 - Tyler Myers trade (NHL.com, March 4, 2026)" },
+    { "type": "unconditional", "from": "Detroit", "to": "Anaheim", "source": "Wikipedia: 2027 NHL entry draft, Round two #5 - John Gibson trade (NHL.com, June 28, 2025)" },
+    { "type": "unconditional", "from": "Florida", "to": "Ottawa", "source": "Wikipedia: 2027 NHL entry draft, Round two #6 - Brady Tkachuk trade (NHL.com/panthers, June 21, 2026)" },
+    { "type": "unconditional", "from": "Minnesota", "to": "Colorado", "source": "Wikipedia: 2027 NHL entry draft, Round two #7 - Charlie Coyle/Miles Wood trade; condition converted Dec 19, 2025 (NHL.com/avalanche, June 27, 2025)" },
+    { "type": "unconditional", "from": "NY Rangers", "to": "Pittsburgh", "source": "Wikipedia: 2027 NHL entry draft, Round two #8 - Reilly Smith trade (NHL.com, July 1, 2024)" },
+    { "type": "unconditional", "from": "St. Louis", "to": "Anaheim", "source": "Wikipedia: 2027 NHL entry draft, Round two #9 - Cam Fowler trade (NHL.com, December 14, 2024)" },
+    { "type": "unconditional", "from": "San Jose", "to": "Vancouver", "source": "Wikipedia: 2027 NHL entry draft, Round two #10 - Kiefer Sherwood trade (NHL.com/canucks, January 19, 2026)" },
+    { "type": "unconditional", "from": "Vancouver", "to": "Chicago", "source": "Wikipedia: 2027 NHL entry draft, Round two #11 - Lafferty/Mikheyev trade (NHL.com, June 26, 2024)" },
+    { "type": "unconditional", "from": "Vegas", "to": "Nashville", "source": "Wikipedia: 2027 NHL entry draft, Round two #12 - Sissons/Lauzon trade; condition converted May 14, 2026 (NHL.com/predators, June 30, 2025)" },
+    { "type": "unconditional", "from": "Winnipeg", "to": "Seattle", "source": "Wikipedia: 2027 NHL entry draft, Round two #13 - Brandon Tanev trade (NHL.com, March 7, 2025)" },
+    {
+      "type": "note",
+      "team": "Colorado",
+      "note": "(pending: Calgary receives the better of Colorado's or Minnesota's 2027 2nd - see Kadri trade)",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Kadri trade (NHL.com, March 6, 2026)"
+    },
+    {
+      "type": "note",
+      "team": "Minnesota",
+      "note": "(pending: Calgary receives the better of Colorado's or Minnesota's 2027 2nd - see Kadri trade)",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Kadri trade (NHL.com, March 6, 2026)"
+    },
+    {
+      "type": "note",
+      "team": "Columbus",
+      "note": "(pending: Florida receives the better / Columbus receives the lower of Columbus's or Winnipeg's 2027 2nd - see Samoskevich/McMann trades)",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Samoskevich trade (NHL.com/kraken, June 21, 2026) and McMann trade (NHL.com/mapleleafs, March 6, 2026)"
+    },
+    {
+      "type": "note",
+      "team": "Winnipeg",
+      "note": "(pending: Florida receives the better / Columbus receives the lower of Columbus's or Winnipeg's 2027 2nd - see Samoskevich/McMann trades)",
+      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Samoskevich trade (NHL.com/kraken, June 21, 2026) and McMann trade (NHL.com/mapleleafs, March 6, 2026)"
+    }
+  ]
+}

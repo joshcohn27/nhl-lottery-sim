@@ -1,103 +1,33 @@
 rank,name,pos,league,team
-1,Gavin McKenna,LW,NCAA,Penn State Univ.
-2,Ivar Stenberg,LW/RW,SHL,Frölunda HC
-3,Caleb Malhotra,C,OHL,Brantford Bulldogs
-4,Chase Reid,RD,OHL,Soo Greyhounds
-5,Carson Carels,LD,WHL,Prince George Cougars
-6,Alberts Smits,LD,Liiga,Jukurit
-7,Keaton Verhoeff,RD,NCAA,Univ. of North Dakota
-8,Viggo Bjorck,C/RW,SHL,Djurgårdens IF
-9,Daxon Rudolph,RD,WHL,Prince Albert Raiders
-10,Tynan Lawrence,C,NCAA,Boston Univ.
-11,Ethan Belchetz,LW,OHL,Windsor Spitfires
-12,Ryan Lin,RD,WHL,Vancouver Giants
-13,Nikita Klepov,F,OHL,Saginaw Spirit
-14,Malte Gustafsson,LD,U20 Nationell,HV71 U20
-15,Oscar Hemming,F,NCAA,Boston College
-16,Adam Novotny,LW/RW,OHL,Peterborough Petes
-17,Wyatt Cullen,F,USHL,U.S. National U18 Team
-18,Ryan Roobroeck,C,OHL,Niagara IceDogs
-19,Oliver Suvanto,C,Liiga,Tappara
-20,Liam Ruck,F,WHL,Medicine Hat Tigers
-21,Alexander Command,C,U20 Nationell,Örebro HK U20
-22,Markus Ruck,F,WHL,Medicine Hat Tigers
-23,JP Hurlbert,F,WHL,Kamloops Blazers
-24,Maddox Dagenais,C,QMJHL,Québec Remparts
-25,Pierce Mbuyi,LW,OHL,Owen Sound Attack
-26,Marcus Nordmark,LW,U20 Nationell,Djurgårdens IF U20
-27,Ilya Morozov,C,NCAA,Miami Univ. (Ohio)
-28,Adam Valentini,F,NCAA,Univ. of Michigan
-29,Nikita Shcherbakov,LD,MHL,Tolpar Ufa
-30,Mathis Preston,F,WHL,Vancouver Giants
-31,Yegor Shilov,C,QMJHL,Victoriaville Tigres
-32,Xavier Villeneuve,LD,QMJHL,Blainville-Boisbriand Armada
-33,Elton Hermansson,RW/LW,HA,MoDo Hockey
-34,Juho Piiparinen,RD,Liiga,Tappara
-35,William Hakansson,LD,SHL,Luleå HF
-36,Casey Mutryn,F,USHL,U.S. National U18 Team
-37,Simas Ignatavicius,C/W,NL,Genève-Servette HC
-38,Cooper Williams,F,WHL,Saskatoon Blades
-39,Chase Harrington,F,WHL,Spokane Chiefs
-40,Gleb Pugachyov,RW,MHL,Chaika NN
-41,Jaxon Cover,LW,OHL,London Knights
-42,Jack Hextall,C,USHL,Youngstown Phantoms
-43,Niklas Aaram-Olsen,RW/LW,U20 Nationell,Örebro HK U20
-44,Giorgos Pantelas,RD,WHL,Brandon Wheat Kings
-45,Isac Hedqvist,C/W,SHL,Luleå HF
-46,Tomas Chrenko,C,Slovak,HK Nitra
-47,Ben Macbeath,LD,WHL,Calgary Hitmen
-48,Dayne Beuker,C,USHL,U.S. National U18 Team
-49,Joe Iginla,F,WHL,Edmonton Oil Kings
-50,Brooks Rogowski,C,OHL,Oshawa Generals
-51,Adam Goljer,RD,Slovak,HK Dukla Trencin
-52,Blake Zielinski,F,USHL,Des Moines Buccaneers
-53,Egor Barabanov,F,OHL,Saginaw Spirit
-54,Tommy Bleyl,RD,QMJHL,Moncton Wildcats
-55,Ryder Cali,C,OHL,North Bay Battalion
-56,Alessandro Di Iorio,C,OHL,Sarnia Sting
-57,Adam Nemec,F,OHL,Sudbury Wolves
-58,Jonas Lagerberg Hoen,RW,U20 Nationell,Leksands IF U20
-59,Victor Plante,F,USHL,U.S. National U18 Team
-60,Thomas Vandenberg,C,OHL,Ottawa 67's
-61,Nils Bartholdsson,RW,U20 Nationell,Rögle BK U20
-62,Beckham Edwards,C,OHL,Sarnia Sting
-63,Samu Alalauri,RD,U20 SM-sarja,Pelicans U20
-64,Lars Steiner,RW,QMJHL,Rouyn-Noranda Huskies
-65,Jakub Vanecek,LD,WHL,Tri-City Americans
-66,Oscar Holmertz,C,SHL,Linköping HC
-67,Dmitri Borichev,G,MHL,Loko-76 Yaroslavl
-68,Tomas Galvas,LD,Czechia,Bili Tygri Liberec
-69,Axel Elofsson,RD,U20 Nationell,Örebro HK U20
-70,Mikey Berchild,F,USHL,U.S. National U18 Team
-71,Beckett Hamilton,F,WHL,Red Deer Rebels
-72,Vladimir Dravecky,RD,OHL,Brantford Bulldogs
-73,Mans Gudmundsson,RD,U20 Nationell,Färjestad BK U20
-74,Charlie Morrison,LD,QMJHL,Québec Remparts
-75,Rian Chudzinski,RW,QMJHL,Moncton Wildcats
-76,Lavr Gashilov,C,MHL,Avto Yekaterinburg
-77,Vertti Svensk,LD,U20 SM-sarja,
-78,Vilho Vanhatalo,RW/LW,U20 SM-sarja,Tappara U20
-79,Rudolfs Berzkalns,C,USHL,Muskegon Lumberjacks
-80,Brek Liske,RD,WHL,Everett Silvertips
-81,Zac Olsen,F,WHL,Saskatoon Blades
-82,Ethan MacKenzie,LD,WHL,Edmonton Oil Kings
-83,Liam Lefebvre,C,QMJHL,Chicoutimi Saguenéens
-84,Maksim Sokolovskii,LD,OHL,London Knights
-85,Alan Shaikhlislamov,RW/LW,MHL,Tolpar Ufa
-86,Brady Knowling,G,USHL,U.S. National U18 Team
-87,William Lacelle,G,QMJHL,Blainville-Boisbriand Armada
-88,Tobias Trejbal,G,USHL,Youngstown Phantoms
-89,Michal Orsulak,G,WHL,Prince Albert Raiders
-90,Olivers Murnieks,C,QMJHL,Saint John Sea Dogs
-91,Jakub Floris,RD,U20 SM-sarja,Lukko U20
-92,Timofei Runtso,RD,WHL,Victoria Royals
-93,Adam Andersson,C,U20 Nationell,Leksands IF U20
-94,Jayden Kurtz,RD,USHL,Chicago Steel
-95,Noel Pakarinen,LW,U20 SM-sarja,Kiekko-Espoo U20
-96,Viktor Fyodorov,C,MHL,Chaika NN
-97,Patriks Plumins,G,Latvia,Zemgale
-98,Cole Zurawski,RW,WHL,Owen Sound Attack
-99,Yegor Rybkin,G,MHL,Nizhny Novgorod
-100,Filip Ruzicka,G,WHL,Brandon Wheat Kings
-101,Matthew Humphries,G,OHL,
-102,Arvin Jaswal,G,OHL,
+1,Landon DuPont,RD,WHL,Univ. of Michigan (commit)
+2,Nazar Privalov,C/LW,KHL,CSKA Moskva
+3,Sergei Skvortsov,LW,KHL,Torpedo NN
+4,Alexis Joseph,C,QMJHL,Saint John Sea Dogs
+5,Carter Meyer,C,QMJHL,Québec Remparts
+6,Milan Sundström,C,U20 Nationell,MoDo Hockey
+7,Jonah Neuenschwander,F,NL,EHC Biel-Bienne
+8,Dima Zhilkin,RW,OHL,Saginaw Spirit
+9,Sammy Nelson,F,USHL,U.S. National U18 Team
+10,Brock England,C,WHL,Seattle Thunderbirds
+11,Brock Cripps,RD,WHL,Prince Albert Raiders
+12,Andrei Pustovoy,RW/C,MHL,Loko Yaroslavl
+13,Jaxon Jacobson,C,WHL,Brandon Wheat Kings
+14,Timothy Kazda,F,OHL,Guelph Storm
+15,Noah Davidson,F,WHL,Medicine Hat Tigers
+16,Jaakko Wycisk,RW/C,OHL,Guelph Storm
+17,Yevgeni Yakunin,C,MHL,MHK Spartak Moskva
+18,Bosse Meijer,C,SHL,Frölunda HC
+19,Luca Santala,F,OHL,London Knights
+20,Jamie Glance,RW/C,QMJHL,Saint John Sea Dogs
+21,Shaeffer Gordon-Carroll,F,WHL,Medicine Hat Tigers
+22,Nolan Fitzhenry,C,USHL,U.S. National U18 Team
+23,Petr Tomek,C,Czechia,HC Energie Karlovy Vary
+24,Malik L'Italien,LD,QMJHL,Halifax Mooseheads
+25,Diego Gutierrez,RD,USHL,U.S. National U18 Team
+26,Ryerson Edgar,C,OHL,Niagara IceDogs
+27,Roberts Naudins,C/LW,WHL,Penticton Vees
+28,Vladimir Shtyrkhunov,RD,QMJHL,Shawinigan Cataractes
+29,Levi Harper,RD,OHL,Saginaw Spirit
+30,Tomas Selic,RW,Czechia U20,HC Kometa Brno
+31,Douglas Johnsson,RD,U20 Nationell,Skellefteå AIK
+32,Max Calce,C,DEL,Adler Mannheim
