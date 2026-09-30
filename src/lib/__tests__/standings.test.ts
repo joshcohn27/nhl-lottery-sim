@@ -1,17 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { computePlayoffField, getLotteryPool, sortTeamsWorstFirst, type TeamStanding } from "../standings";
 
+// Points default to a derivation from pointPctg (at a fixed 10 GP) so existing
+// fixtures written in terms of pointPctg still produce the matching points
+// total the real comparator now sorts on - pass `points` explicitly to test
+// the points/games-played mechanics directly (see the "games played" tests).
 function team(overrides: Partial<TeamStanding> & { abbrev: string }): TeamStanding {
+  const gamesPlayed = overrides.gamesPlayed ?? 10;
+  const pointPctg = overrides.pointPctg ?? 0;
+  const derivedPoints = Math.round(pointPctg * gamesPlayed * 2);
+
   return {
     name: overrides.abbrev,
-    gamesPlayed: 10,
-    points: 0,
-    pointPctg: 0,
+    gamesPlayed,
+    points: derivedPoints,
+    pointPctg,
     regulationWins: 0,
     row: 0,
     wins: 0,
     losses: 0,
     otLosses: 0,
+    goalDifferential: 0,
+    goalsFor: 0,
     streakCode: "W",
     streakCount: 0,
     l10Wins: 0,
@@ -69,6 +79,48 @@ describe("sortTeamsWorstFirst", () => {
     sortTeamsWorstFirst(teams);
 
     expect(teams).toEqual(original);
+  });
+
+  it("ranks a team that has played and lost below a team that hasn't played yet (both tied at 0 points)", () => {
+    const playedAndLost = team({ abbrev: "LOSER", gamesPlayed: 1, points: 0 });
+    const hasntPlayed = team({ abbrev: "UNPLAYED", gamesPlayed: 0, points: 0 });
+
+    // Real NHL rule: tied on points -> fewer games played is better, so the
+    // 0-GP team ranks ahead of (better than) the team that's actually 0-1-0.
+    expect(sortTeamsWorstFirst([hasntPlayed, playedAndLost]).map((t) => t.abbrev)).toEqual(["LOSER", "UNPLAYED"]);
+  });
+
+  it("breaks an exact points tie by fewer games played before looking at RW/ROW/wins", () => {
+    const fewerGames = team({ abbrev: "FEWER", gamesPlayed: 5, points: 6, regulationWins: 0 });
+    const moreGames = team({ abbrev: "MORE", gamesPlayed: 8, points: 6, regulationWins: 3 });
+
+    // Even though MORE has more regulation wins, it took more games to get the
+    // same points total, so by the official tiebreaker it ranks worse.
+    expect(sortTeamsWorstFirst([fewerGames, moreGames]).map((t) => t.abbrev)).toEqual(["MORE", "FEWER"]);
+  });
+
+  it("ranks by raw points first, not points percentage, when points actually differ", () => {
+    // A has fewer points in more games (worse rate); B has more points in
+    // fewer games (better rate). The real standings/tiebreak rule sorts on
+    // points directly - percentage only matters as an explanatory tiebreak
+    // when points are tied - so A (8 pts) is worse than B (10 pts) here even
+    // though B's points percentage is higher.
+    const a = team({ abbrev: "A", gamesPlayed: 20, points: 8 });
+    const b = team({ abbrev: "B", gamesPlayed: 10, points: 10 });
+
+    expect(sortTeamsWorstFirst([b, a]).map((t) => t.abbrev)).toEqual(["A", "B"]);
+  });
+
+  it("falls back to goal differential, then goals for, after points/GP/RW/ROW/wins all tie", () => {
+    const worseDiff = team({ abbrev: "WORSE_DIFF", points: 10, gamesPlayed: 10, goalDifferential: -5, goalsFor: 20 });
+    const betterDiff = team({ abbrev: "BETTER_DIFF", points: 10, gamesPlayed: 10, goalDifferential: 2, goalsFor: 15 });
+
+    expect(sortTeamsWorstFirst([betterDiff, worseDiff]).map((t) => t.abbrev)).toEqual(["WORSE_DIFF", "BETTER_DIFF"]);
+
+    const worseGf = team({ abbrev: "WORSE_GF", points: 10, gamesPlayed: 10, goalDifferential: 0, goalsFor: 10 });
+    const betterGf = team({ abbrev: "BETTER_GF", points: 10, gamesPlayed: 10, goalDifferential: 0, goalsFor: 25 });
+
+    expect(sortTeamsWorstFirst([betterGf, worseGf]).map((t) => t.abbrev)).toEqual(["WORSE_GF", "BETTER_GF"]);
   });
 });
 

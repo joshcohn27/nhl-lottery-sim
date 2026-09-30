@@ -320,9 +320,12 @@ select {
 
 .site-header-tabs {
   display: flex;
+  align-items: center;
   gap: var(--space-6);
   flex: 1 1 auto;
+  height: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .site-header-tab {

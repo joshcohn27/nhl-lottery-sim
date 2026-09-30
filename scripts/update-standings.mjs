@@ -34,13 +34,18 @@ const NAME_BY_ABBREV = {
   WSH: "Washington", WPG: "Winnipeg",
 };
 
-// Same tiebreaker order as src/lib/standings.ts: points% -> RW -> ROW -> wins.
+// Same tiebreaker order as src/lib/standings.ts's compareWorstFirst - the NHL's
+// official procedure: points -> fewer GP -> RW -> ROW -> wins -> goal diff -> GF.
+// (Head-to-head among tied clubs skipped - needs per-opponent logs we don't have.)
 function compareWorstFirst(a, b) {
   return (
-    a.pointPctg - b.pointPctg ||
+    a.points - b.points ||
+    b.gamesPlayed - a.gamesPlayed ||
     a.regulationWins - b.regulationWins ||
     a.row - b.row ||
     a.wins - b.wins ||
+    a.goalDifferential - b.goalDifferential ||
+    a.goalsFor - b.goalsFor ||
     a.name.localeCompare(b.name)
   );
 }
@@ -204,6 +209,8 @@ async function main() {
         wins: row.wins ?? 0,
         losses: row.losses ?? 0,
         otLosses: row.otLosses ?? 0,
+        goalDifferential: row.goalDifferential ?? 0,
+        goalsFor: row.goalFor ?? 0,
         streakCode: row.streakCode ?? "",
         streakCount: row.streakCount ?? 0,
         l10Wins: row.l10Wins ?? 0,

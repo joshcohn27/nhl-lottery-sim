@@ -9,6 +9,8 @@ export interface TeamStanding {
   wins: number;
   losses: number;
   otLosses: number;
+  goalDifferential: number;
+  goalsFor: number;
   /** e.g. "W" or "L" */
   streakCode: string;
   streakCount: number;
@@ -22,16 +24,30 @@ export interface TeamStanding {
 }
 
 /**
- * Worst-first comparator using the NHL's own standings tiebreaker order:
- * points % -> regulation wins -> regulation+OT wins (ROW) -> wins.
- * Falls back to team name so the sort is fully deterministic.
+ * Worst-first comparator using the NHL's official tie-breaking procedure:
+ * clubs are ranked by points; ties in points are broken in order by fewer
+ * games played (equivalent to superior points %), more regulation wins (RW),
+ * more regulation+OT wins (ROW), more total wins, goal differential, then
+ * goals for. (Head-to-head record among tied clubs is the one official
+ * criterion skipped here - it needs opponent-by-opponent game logs the
+ * standings endpoint doesn't provide.) Falls back to team name so the sort
+ * stays fully deterministic.
+ *
+ * Comparing raw points (not points %) first, with fewer-games-played as the
+ * first tiebreaker, is what correctly ranks a team that has actually lost
+ * every game it's played (0 points, GP > 0) below a team that simply hasn't
+ * played yet (0 points, 0 GP) - both are tied on points, and by rule the
+ * team with fewer games played (here, 0) is the one considered better.
  */
 export function compareWorstFirst(a: TeamStanding, b: TeamStanding): number {
   return (
-    a.pointPctg - b.pointPctg ||
+    a.points - b.points ||
+    b.gamesPlayed - a.gamesPlayed ||
     a.regulationWins - b.regulationWins ||
     a.row - b.row ||
     a.wins - b.wins ||
+    a.goalDifferential - b.goalDifferential ||
+    a.goalsFor - b.goalsFor ||
     a.name.localeCompare(b.name)
   );
 }
