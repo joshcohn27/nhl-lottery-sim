@@ -8,7 +8,8 @@ import {
   MAX_MOVE_UP,
   SEASON_LABEL,
 } from "../lib/config";
-import { getLotteryPool, isSeasonComplete, sortTeamsWorstFirst, type TeamStanding } from "../lib/standings";
+import { getLotteryPool, isSeasonComplete, type TeamStanding } from "../lib/standings";
+import { resolvePlayoffPickOrder, type PlayoffResults } from "../lib/playoffDraftOrder";
 import {
   applyRound1Overlay,
   applyRound2Overlay,
@@ -36,7 +37,15 @@ import {
   type LotteryComboRow,
 } from "../lib/lotteryDraw";
 import { TeamLogo } from "../components/TeamLogo";
+import { TradedPickTeam } from "../components/TradedPickTeam";
 import { abbrevForTeamName } from "../lib/teams";
+import {
+  formatProspectMeta,
+  parseProspectsCsv,
+  prospectMatchesPositionFilter,
+  type Prospect,
+  type ProspectPositionFilter,
+} from "../lib/prospects";
 import "./LotteryPage.css";
 
 interface StandingsFile {
@@ -50,14 +59,6 @@ interface StandingsFile {
 interface PickTradesFile {
   round1: Round1Rule[];
   round2: Round2Rule[];
-}
-
-interface Prospect {
-  rank: number;
-  name: string;
-  pos: string;
-  league: string;
-  team?: string;
 }
 
 interface DraftPick {
@@ -75,13 +76,12 @@ interface Round2Pick {
   player: Prospect | null;
 }
 
-type ProspectPositionFilter = "all" | "centers" | "wingers" | "forwards" | "defense" | "goalies";
-
 const COMBOS_CSV_PATH = "/mock/combos.csv";
 const PROSPECTS_CSV_PATH = "/mock/prospects.csv";
 const STANDINGS_JSON_PATH = "/data/standings.json";
 const PICK_TRADES_JSON_PATH = "/data/pick-trades.json";
 const LOTTERY_HISTORY_JSON_PATH = "/data/lottery-history.json";
+const PLAYOFF_RESULTS_JSON_PATH = "/data/playoff-results.json";
 const GAMES_IN_SEASON = 84;
 
 const BALL_COLORS: [string, string][] = [
@@ -101,83 +101,6 @@ const BALL_COLORS: [string, string][] = [
   ["#1e8449", "#58d68d"],
 ];
 
-function splitCsvLine(line: string): string[] {
-  const cells: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const next = line[i + 1];
-
-    if (char === '"' && inQuotes && next === '"') {
-      current += '"';
-      i++;
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      cells.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  cells.push(current.trim());
-  return cells;
-}
-
-function parseProspectsCsv(csv: string): Prospect[] {
-  return csv
-    .trim()
-    .split(/\r?\n/)
-    .slice(1)
-    .filter(Boolean)
-    .map((line) => {
-      const [rank, name, pos, league, team] = splitCsvLine(line);
-
-      return {
-        rank: Number(rank),
-        name,
-        pos,
-        league: league ?? "",
-        team: team || undefined,
-      };
-    })
-    .filter((prospect) => Number.isFinite(prospect.rank) && prospect.name)
-    .sort((a, b) => a.rank - b.rank);
-}
-
-function prospectMatchesPositionFilter(prospect: Prospect, filter: ProspectPositionFilter): boolean {
-  if (filter === "all") return true;
-
-  const tokens = prospect.pos
-    .toUpperCase()
-    .split(/[^A-Z]+/)
-    .filter(Boolean);
-
-  const hasCenter = tokens.includes("C");
-  const hasWing = tokens.includes("LW") || tokens.includes("RW") || tokens.includes("W");
-  const hasForward = tokens.includes("F") || hasCenter || hasWing;
-  const hasDefense = tokens.includes("D") || tokens.includes("LD") || tokens.includes("RD");
-  const hasGoalie = tokens.includes("G");
-
-  if (filter === "centers") return hasCenter;
-  if (filter === "wingers") return hasWing;
-  if (filter === "forwards") return hasForward;
-  if (filter === "defense") return hasDefense;
-  if (filter === "goalies") return hasGoalie;
-
-  return true;
-}
-
 function escapeHtml(value: string | number | null | undefined): string {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -185,10 +108,6 @@ function escapeHtml(value: string | number | null | undefined): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-}
-
-function formatProspectMeta(prospect: Prospect): string {
-  return [prospect.pos, prospect.league, prospect.team].filter(Boolean).join(" · ");
 }
 
 function DrawnBall({ n, isNew }: { n: number; isNew: boolean }) {
@@ -257,6 +176,7 @@ export default function LotteryPage() {
   const [standingsStatus, setStandingsStatus] = useState("Loading standings...");
   const [pickTrades, setPickTrades] = useState<PickTradesFile | null>(null);
   const [lotteryHistory, setLotteryHistory] = useState<LotteryHistory | null>(null);
+  const [playoffResults, setPlayoffResults] = useState<PlayoffResults | null>(null);
 
   const [drawnBalls, setDrawnBalls] = useState<number[]>([]);
   const [currentDraw, setCurrentDraw] = useState(1);
@@ -359,6 +279,16 @@ export default function LotteryPage() {
   }, []);
 
   useEffect(() => {
+    fetch(PLAYOFF_RESULTS_JSON_PATH)
+      .then((res) => {
+        if (!res.ok) throw new Error("playoff-results.json not found");
+        return res.json();
+      })
+      .then((data: { results: PlayoffResults | null }) => setPlayoffResults(data.results))
+      .catch(() => console.warn("Could not load playoff-results.json"));
+  }, []);
+
+  useEffect(() => {
     if (!lookupOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -393,19 +323,44 @@ export default function LotteryPage() {
     [lotteryPool.lotteryTeams]
   );
 
+  // Picks 17-32: by regular-season record until this year's playoff results
+  // are known, then re-ordered by how far each team advanced (conference
+  // final losers picks 29-30, Cup Final loser/champion picks 31-32).
+  const playoffPickOrder = useMemo(
+    () => resolvePlayoffPickOrder(lotteryPool.otherTeams, playoffResults),
+    [lotteryPool.otherTeams, playoffResults]
+  );
+
   const nonLotteryTeams = useMemo(
     () =>
-      lotteryPool.otherTeams.map((team, idx) => ({
+      playoffPickOrder.map((team, idx) => ({
         ...team,
         pick: LOTTERY_TEAM_COUNT + idx + 1,
       })),
-    [lotteryPool.otherTeams]
+    [playoffPickOrder]
   );
 
-  const teamsWithRound1Condition = useMemo(
-    () => new Set((pickTrades?.round1 ?? []).map((rule) => (rule.type === "unconditional" ? rule.from : rule.team))),
-    [pickTrades]
-  );
+  const round1ConditionTooltips = useMemo(() => {
+    const tooltips = new Map<string, string>();
+
+    for (const rule of pickTrades?.round1 ?? []) {
+      if (rule.type === "unconditional") {
+        tooltips.set(rule.from, `This pick has been traded to ${rule.to}.`);
+      } else if (rule.type === "protectedTopN") {
+        tooltips.set(
+          rule.team,
+          `Protected top-${rule.topN}: if this pick lands outside the top ${rule.topN}, it goes to ${rule.transferTo}.`
+        );
+      } else {
+        tooltips.set(
+          rule.team,
+          `If outside the top ${rule.topN}, this pick goes to ${rule.outsideTopNRecipient}. If inside the top ${rule.topN}: ${rule.insideTopNLabel}.`
+        );
+      }
+    }
+
+    return tooltips;
+  }, [pickTrades]);
 
   const advanceHistory = useMemo(
     () => (lotteryHistory ? teamsWithAdvanceHistory(DRAFT_YEAR, lotteryHistory) : []),
@@ -551,17 +506,27 @@ export default function LotteryPage() {
   const round2Base = useMemo((): Round2Pick[] => {
     if (!standingsFile || !pickTrades) return [];
 
-    const worstFirst = sortTeamsWorstFirst(standingsFile.teams);
-    const base = worstFirst.map((team, idx) => ({
-      pick: LOTTERY_TEAM_COUNT * 2 + idx + 1,
-      team: team.name,
-      note: "",
-      forfeited: false,
-      player: null as Prospect | null,
-    }));
+    // Same team order as round 1 (lottery teams by standings, playoff teams
+    // by advancement once known), offset by a full round of picks.
+    const base = [
+      ...lotteryTeams.map((team, idx) => ({
+        pick: LOTTERY_TEAM_COUNT * 2 + idx + 1,
+        team: team.name,
+        note: "",
+        forfeited: false,
+        player: null as Prospect | null,
+      })),
+      ...playoffPickOrder.map((team, idx) => ({
+        pick: LOTTERY_TEAM_COUNT * 3 + idx + 1,
+        team: team.name,
+        note: "",
+        forfeited: false,
+        player: null as Prospect | null,
+      })),
+    ];
 
     return applyRound2Overlay(base, pickTrades.round2);
-  }, [standingsFile, pickTrades]);
+  }, [standingsFile, pickTrades, lotteryTeams, playoffPickOrder]);
 
   const round2Picks = useMemo(
     () => round2Base.map((p) => ({ ...p, player: round2Assignments[p.pick] ?? null })),
@@ -1176,36 +1141,6 @@ export default function LotteryPage() {
   const formatStreak = (t: TeamStanding) => (t.gamesPlayed === 0 ? "--" : `${t.streakCode}${t.streakCount}`);
   const formatPct = (t: TeamStanding) => (t.gamesPlayed === 0 ? "--" : t.pointPctg.toFixed(3).replace(/^0/, ""));
 
-  function TradedPickTeam({ team, note }: { team: string; note: string }) {
-    const isPending = team.includes("(pending");
-    if (isPending) {
-      return <span style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{team}</span>;
-    }
-
-    const viaMatch = note.match(/^\(via ([^,)]+)/);
-    if (!viaMatch) {
-      return (
-        <span className="team-cell">
-          <TeamLogo teamName={team} size={22} />
-          <span>{team}</span>
-        </span>
-      );
-    }
-
-    const originalTeam = viaMatch[1];
-    return (
-      <span className="team-cell" title={note}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, opacity: 0.55 }}>
-          <TeamLogo teamName={originalTeam} size={18} />
-          {originalTeam}
-        </span>
-        <span style={{ color: "var(--color-purple)" }}>&rarr;</span>
-        <TeamLogo teamName={team} size={22} />
-        <strong style={{ color: "var(--color-purple)" }}>{team}</strong>
-      </span>
-    );
-  }
-
   const statHeaderRow = (
     <tr>
       <th style={{ width: 50 }}>Pick</th>
@@ -1246,7 +1181,11 @@ export default function LotteryPage() {
             <TeamLogo teamName={team.name} size={22} />
             <span>
               {team.name}
-              {teamsWithRound1Condition.has(team.name) ? "*" : ""}
+              {round1ConditionTooltips.has(team.name) && (
+                <span className="condition-asterisk" title={round1ConditionTooltips.get(team.name)}>
+                  *
+                </span>
+              )}
             </span>
             {isAlive && !lottoDone && <span className="pill pill-alive">Alive</span>}
             {isEliminated && <span className="pill pill-out">Out</span>}

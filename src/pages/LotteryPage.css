@@ -145,6 +145,13 @@
   border: 1px solid var(--color-purple);
 }
 
+.condition-asterisk {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-black);
+  cursor: help;
+  border-bottom: 1px dotted var(--color-purple);
+}
+
 .fourth-ball-chip {
   border: 1px solid var(--color-purple);
   color: var(--color-purple);
@@ -266,14 +273,6 @@
   color: var(--color-purple);
 }
 
-.form-input {
-  width: 100%;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-base);
-  color: var(--color-text);
-}
 
 .prospect-list {
   max-height: 380px;

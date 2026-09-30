@@ -1,0 +1,4 @@
+{
+  "_comment": "Picks 17-28 go to every playoff team that didn't reach the conference final, ordered by regular-season record. Picks 29-30 go to the two conference-final losers (by regular-season record). Picks 31-32 go to the two Stanley Cup Final teams: the loser picks 31st, the champion picks 32nd (last overall). Fill in `results` once the 2026-27 playoffs conclude (~June 2027) with the 4 team abbreviations below; until then this stays null and the site falls back to plain regular-season order for picks 17-32.",
+  "results": null
+}

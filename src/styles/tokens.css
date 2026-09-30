@@ -135,6 +135,16 @@ select {
   background: #8f3a38;
 }
 
+.form-input {
+  width: 100%;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-white);
+}
+
 /* Page title framed by thin purple rules */
 .page-title-frame {
   display: flex;
@@ -231,21 +241,18 @@ select {
   background: var(--color-text-muted);
 }
 
-.traded-pick {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.traded-pick .arrow {
-  color: var(--color-purple);
-}
-
-.traded-pick .owner {
+.trade-arrow {
   color: var(--color-purple);
   font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+.trade-recipient {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.02em;
 }
 
 /* Mobile: wide stat tables scroll horizontally with a sticky first (team) column */
@@ -280,6 +287,10 @@ select {
 
   .container {
     padding: 0 var(--space-3);
+  }
+
+  .full-order-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
