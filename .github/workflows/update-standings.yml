@@ -5,8 +5,10 @@ on:
     # GitHub Actions cron is UTC-only. Midnight America/New_York is 04:00 UTC
     # during EDT and 05:00 UTC during EST - the script itself checks the actual
     # NY hour and no-ops on whichever of these two runs isn't really midnight.
-    - cron: "0 4 * * *"
-    - cron: "0 5 * * *"
+    # Offset a few minutes past the hour - GitHub documents that on-the-hour
+    # schedules are the most likely to be delayed or dropped under load.
+    - cron: "7 4 * * *"
+    - cron: "7 5 * * *"
   workflow_dispatch:
     inputs:
       force:
