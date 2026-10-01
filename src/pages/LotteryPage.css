@@ -168,7 +168,8 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .draft-layout {

@@ -1270,28 +1270,38 @@ export default function LotteryPage() {
     );
   }
 
+  // On the active draft board (round 1/2), the draft-toolbar's own heading
+  // already identifies the page - repeating the big framed title + subtitle
+  // + status line above it just pushes the board and prospect panel down
+  // the page for no benefit, forcing a scroll before you can even draft.
+  const showFullHeader = !(lottoPhase === "draft" && roundsSelected);
+
   return (
     <div className="container">
-      <div className="page-title-frame">
-        <h1 className="page-title">
-          {lottoPhase === "draft" ? `${DRAFT_YEAR} Mock Draft` : `${DRAFT_YEAR} Draft Lottery Simulator`}
-        </h1>
-      </div>
+      {showFullHeader && (
+        <>
+          <div className="page-title-frame">
+            <h1 className="page-title">
+              {lottoPhase === "draft" ? `${DRAFT_YEAR} Mock Draft` : `${DRAFT_YEAR} Draft Lottery Simulator`}
+            </h1>
+          </div>
 
-      <p className="lottery-page-sub">
-        {lottoPhase === "draft"
-          ? `Build your ${DRAFT_YEAR} NHL first-round mock draft.`
-          : `Simulate the ${DRAFT_YEAR} NHL Draft Lottery and build a full first-round mock draft.`}
-      </p>
-      <p className="status-line">
-        {standingsFile?.provisional
-          ? `Projected order, seeded from last season's final standings. ${SEASON_LABEL} season not yet underway.`
-          : seasonComplete
-            ? `Final order. ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
-            : `Projected order. ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}
-        {" "}
-        {csvStatus} {prospectStatus} {standingsFile ? "" : standingsStatus}
-      </p>
+          <p className="lottery-page-sub">
+            {lottoPhase === "draft"
+              ? `Build your ${DRAFT_YEAR} NHL first-round mock draft.`
+              : `Simulate the ${DRAFT_YEAR} NHL Draft Lottery and build a full first-round mock draft.`}
+          </p>
+          <p className="status-line">
+            {standingsFile?.provisional
+              ? `Projected order, seeded from last season's final standings. ${SEASON_LABEL} season not yet underway.`
+              : seasonComplete
+                ? `Final order. ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
+                : `Projected order. ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}
+            {" "}
+            {csvStatus} {prospectStatus} {standingsFile ? "" : standingsStatus}
+          </p>
+        </>
+      )}
 
       {lottoPhase === "lottery" && (
         <>
