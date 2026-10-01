@@ -148,8 +148,7 @@
 .condition-asterisk {
   color: var(--color-purple);
   font-weight: var(--font-weight-black);
-  cursor: help;
-  border-bottom: 1px dotted var(--color-purple);
+  margin-left: 2px;
 }
 
 .fourth-ball-chip {

@@ -38,6 +38,7 @@ import {
 } from "../lib/lotteryDraw";
 import { TeamLogo } from "../components/TeamLogo";
 import { TradedPickTeam } from "../components/TradedPickTeam";
+import { Tooltip } from "../components/Tooltip";
 import { abbrevForTeamName } from "../lib/teams";
 import {
   formatProspectMeta,
@@ -1179,14 +1180,16 @@ export default function LotteryPage() {
         <td>
           <span className="team-cell">
             <TeamLogo teamName={team.name} size={22} />
-            <span>
-              {team.name}
-              {round1ConditionTooltips.has(team.name) && (
-                <span className="condition-asterisk" title={round1ConditionTooltips.get(team.name)}>
-                  *
+            {round1ConditionTooltips.has(team.name) ? (
+              <Tooltip text={round1ConditionTooltips.get(team.name)!}>
+                <span>
+                  {team.name}
+                  <span className="condition-asterisk">*</span>
                 </span>
-              )}
-            </span>
+              </Tooltip>
+            ) : (
+              <span>{team.name}</span>
+            )}
             {isAlive && !lottoDone && <span className="pill pill-alive">Alive</span>}
             {isEliminated && <span className="pill pill-out">Out</span>}
             {won && lottoDone && (

@@ -87,17 +87,33 @@ export function applyRound1Overlay<T extends OverlayPick>(baseOrder: T[], rules:
   });
 }
 
+/**
+ * Applies round-2 trade rules to the base order. A team can have more than
+ * one rule attached to its own natural pick (e.g. an unconditional trade of
+ * its own pick AND an unrelated informational note about a separate
+ * conditional pick that happens to reference it) - all of a team's rules are
+ * applied in order, not just the first/last one, so a real trade can never be
+ * silently dropped in favor of an unrelated note (or vice versa).
+ */
 export function applyRound2Overlay<T extends OverlayPick>(baseOrder: T[], rules: Round2Rule[]): T[] {
-  const rulesByTeam = new Map(rules.map((rule) => [ruleSourceTeam(rule), rule]));
+  const rulesByTeam = new Map<string, Round2Rule[]>();
+  for (const rule of rules) {
+    const team = ruleSourceTeam(rule);
+    const existing = rulesByTeam.get(team);
+    if (existing) existing.push(rule);
+    else rulesByTeam.set(team, [rule]);
+  }
 
   return baseOrder.map((pick) => {
-    const rule = rulesByTeam.get(pick.team);
-    if (!rule) return pick;
+    const teamRules = rulesByTeam.get(pick.team);
+    if (!teamRules) return pick;
 
-    if (rule.type === "unconditional") {
-      return { ...pick, team: rule.to, note: appendNote(pick.note, `(via ${rule.from})`) };
-    }
+    return teamRules.reduce((current, rule) => {
+      if (rule.type === "unconditional") {
+        return { ...current, team: rule.to, note: appendNote(current.note, `(via ${rule.from})`) };
+      }
 
-    return { ...pick, note: appendNote(pick.note, rule.note) };
+      return { ...current, note: appendNote(current.note, rule.note) };
+    }, pick);
   });
 }
