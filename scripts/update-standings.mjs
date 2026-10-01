@@ -4,8 +4,7 @@
 // failure or preseason condition it leaves the existing file alone and exits 0.
 //
 // Usage: node scripts/update-standings.mjs
-// Schedule: see .github/workflows/update-standings.yml (runs daily, checks the
-// America/New_York hour itself since GitHub Actions cron is UTC-only).
+// Schedule: see .github/workflows/update-standings.yml (runs every 4 hours).
 
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -126,23 +125,7 @@ function keepLastGood(reason, existing) {
   process.exit(0);
 }
 
-function currentHourInNewYork() {
-  const hourStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    hour: "numeric",
-    hour12: false,
-  }).format(new Date());
-
-  // "24" shows up at midnight with hour12: false in some ICU builds - normalize to 0.
-  return Number(hourStr) % 24;
-}
-
 async function main() {
-  if (process.env.FORCE_RUN !== "true" && currentHourInNewYork() !== 0) {
-    console.log("update-standings: not midnight in America/New_York yet - skipping this run.");
-    return;
-  }
-
   const existing = await readExistingFile();
 
   let response;

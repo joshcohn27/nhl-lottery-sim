@@ -2,19 +2,11 @@ name: Update standings
 
 on:
   schedule:
-    # GitHub Actions cron is UTC-only. Midnight America/New_York is 04:00 UTC
-    # during EDT and 05:00 UTC during EST - the script itself checks the actual
-    # NY hour and no-ops on whichever of these two runs isn't really midnight.
-    # Offset a few minutes past the hour - GitHub documents that on-the-hour
-    # schedules are the most likely to be delayed or dropped under load.
-    - cron: "7 4 * * *"
-    - cron: "7 5 * * *"
+    # Every 4 hours, offset a few minutes past the hour - GitHub documents
+    # that on-the-hour schedules are the likeliest to be delayed or dropped
+    # under load.
+    - cron: "7 */4 * * *"
   workflow_dispatch:
-    inputs:
-      force:
-        description: "Run even if it isn't midnight America/New_York right now"
-        type: boolean
-        default: true
 
 permissions:
   contents: write
@@ -30,8 +22,6 @@ jobs:
           node-version: 20
 
       - name: Run standings updater
-        env:
-          FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
         run: node scripts/update-standings.mjs
 
       - name: Commit standings.json if it changed
