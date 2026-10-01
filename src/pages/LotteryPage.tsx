@@ -1505,6 +1505,14 @@ export default function LotteryPage() {
                     <div className="result-pick-label">Pick #{curPick?.pick}</div>
                     <div className="team-name">{curPick?.team}</div>
                   </div>
+                  <button
+                    className="btn"
+                    onClick={makePick}
+                    disabled={!selectedProspect || draftActionDisabled}
+                    style={{ width: "100%" }}
+                  >
+                    {selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
+                  </button>
                   <button className="btn btn-outline" onClick={autoPick} disabled={draftActionDisabled}>
                     Auto-Pick Next
                   </button>
@@ -1549,14 +1557,6 @@ export default function LotteryPage() {
                       </div>
                     ))}
                   </div>
-                  <button
-                    className="btn"
-                    onClick={makePick}
-                    disabled={!selectedProspect || draftActionDisabled}
-                    style={{ width: "100%" }}
-                  >
-                    {selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-                  </button>
                 </div>
               ) : (
                 <div className="complete-card">
@@ -1677,6 +1677,14 @@ export default function LotteryPage() {
                           <div className="result-pick-label">Pick #{curR2Pick?.pick}</div>
                           <div className="team-name">{curR2Pick?.team}</div>
                         </div>
+                        <button
+                          className="btn"
+                          style={{ width: "100%" }}
+                          onClick={() => safelyAssignRound2Picks("manual", selectedProspect)}
+                          disabled={!selectedProspect}
+                        >
+                          {selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
+                        </button>
                         <button className="btn btn-outline" onClick={() => safelyAssignRound2Picks("auto-next")}>
                           Auto-Pick Next
                         </button>
@@ -1719,14 +1727,6 @@ export default function LotteryPage() {
                             </div>
                           ))}
                         </div>
-                        <button
-                          className="btn"
-                          style={{ width: "100%" }}
-                          onClick={() => safelyAssignRound2Picks("manual", selectedProspect)}
-                          disabled={!selectedProspect}
-                        >
-                          {selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-                        </button>
                       </>
                     );
                   })()}
