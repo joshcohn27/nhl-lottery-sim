@@ -36,7 +36,6 @@ import {
   type LotteryAssignment,
   type LotteryComboRow,
 } from "../lib/lotteryDraw";
-import { TeamLogo } from "../components/TeamLogo";
 import { TradedPickTeam } from "../components/TradedPickTeam";
 import { Tooltip } from "../components/Tooltip";
 import { abbrevForTeamName } from "../lib/teams";
@@ -664,6 +663,22 @@ export default function LotteryPage() {
     [lotteryTeams, nonLotteryTeams, pickTrades]
   );
 
+  // The current round-1 order with trades applied, reactive to the lottery
+  // draw as it happens (starts from the plain projected order with
+  // assignments=[] before any balls are drawn). Used so the standings table
+  // shows the same trade-arrow treatment as the Full Order page, instead of
+  // the raw pre-trade team name.
+  const liveRound1Order = useMemo(
+    () => buildOrderFromLotteryAssignments(lotteryAssignments),
+    [buildOrderFromLotteryAssignments, lotteryAssignments]
+  );
+
+  const round1ByPick = useMemo(() => {
+    const map = new Map<number, DraftPick>();
+    liveRound1Order.forEach((pick) => map.set(pick.pick, pick));
+    return map;
+  }, [liveRound1Order]);
+
   const finalizeLottery = useCallback(
     (assignments: LotteryAssignment[]) => {
       const order = buildOrderFromLotteryAssignments(assignments);
@@ -1158,6 +1173,29 @@ export default function LotteryPage() {
     </tr>
   );
 
+  function PickTeamCell({ team }: { team: { name: string; pick: number } }) {
+    const overlayPick = round1ByPick.get(team.pick);
+    const displayTeam = overlayPick?.team ?? team.name;
+    const displayNote = overlayPick?.note ?? "";
+    // Only show the "*" heads-up when the condition exists but hasn't
+    // actually transferred the pick yet - once it has, the arrow itself
+    // already shows the recipient, so the asterisk would be redundant.
+    const pendingTooltip = displayTeam === team.name ? round1ConditionTooltips.get(team.name) : undefined;
+
+    if (pendingTooltip) {
+      return (
+        <Tooltip text={pendingTooltip}>
+          <span className="team-cell">
+            <TradedPickTeam team={displayTeam} note={displayNote} />
+            <span className="condition-asterisk">*</span>
+          </span>
+        </Tooltip>
+      );
+    }
+
+    return <TradedPickTeam team={displayTeam} note={displayNote} />;
+  }
+
   function LotteryTeamRow({ team, idx }: { team: (typeof lotteryTeams)[number]; idx: number }) {
     const isP1 = pick1Winner === team.name;
     const isP2 = pick2Winner === team.name;
@@ -1179,17 +1217,7 @@ export default function LotteryPage() {
         <td>{idx + 1}</td>
         <td>
           <span className="team-cell">
-            <TeamLogo teamName={team.name} size={22} />
-            {round1ConditionTooltips.has(team.name) ? (
-              <Tooltip text={round1ConditionTooltips.get(team.name)!}>
-                <span>
-                  {team.name}
-                  <span className="condition-asterisk">*</span>
-                </span>
-              </Tooltip>
-            ) : (
-              <span>{team.name}</span>
-            )}
+            <PickTeamCell team={team} />
             {isAlive && !lottoDone && <span className="pill pill-alive">Alive</span>}
             {isEliminated && <span className="pill pill-out">Out</span>}
             {won && lottoDone && (
@@ -1226,8 +1254,7 @@ export default function LotteryPage() {
         <td>{team.pick}</td>
         <td>
           <span className="team-cell">
-            <TeamLogo teamName={team.name} size={22} />
-            <span>{team.name}</span>
+            <PickTeamCell team={team} />
           </span>
         </td>
         <td>{formatRecord(team)}</td>

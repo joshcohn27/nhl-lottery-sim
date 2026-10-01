@@ -158,10 +158,14 @@ select {
 .tooltip-bubble {
   position: absolute;
   bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(2px);
+  /* Anchored to the trigger's LEFT edge (not centered) and extending
+     rightward, so it can never be clipped by the left edge of the
+     viewport/table - a trigger near the left edge (e.g. the Team column)
+     has nowhere to the left for a centered tooltip to expand into. */
+  left: 0;
+  transform: translateY(2px);
   width: max-content;
-  max-width: 280px;
+  max-width: min(280px, calc(100vw - 2 * var(--space-4)));
   background: var(--color-text);
   color: var(--color-white);
   font-size: var(--font-size-xs);
@@ -183,8 +187,7 @@ select {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 14px;
   border: 5px solid transparent;
   border-top-color: var(--color-text);
 }
@@ -194,7 +197,7 @@ select {
 .tooltip-trigger:focus-within .tooltip-bubble {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 /* Page title framed by thin purple rules */
