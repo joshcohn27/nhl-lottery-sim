@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const NAV_TABS = [
@@ -9,6 +10,8 @@ const NAV_TABS = [
 ];
 
 export function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <header className="site-header">
       <div className="site-header-inner">
@@ -29,7 +32,35 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
+
+        <button
+          type="button"
+          className="site-header-menu-toggle"
+          aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
       </div>
+
+      {menuOpen && (
+        <nav className="site-header-tabs-mobile" aria-label="Primary">
+          {NAV_TABS.map((tab) => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.to === "/"}
+              className={({ isActive }) => `site-header-tab-mobile${isActive ? " active" : ""}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              {tab.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

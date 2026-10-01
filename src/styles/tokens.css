@@ -416,9 +416,68 @@ select {
   border-top: 6px solid var(--color-white);
 }
 
+/* Mobile hamburger toggle: hidden on desktop, shown under the breakpoint below. */
+.site-header-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.site-header-menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--color-white);
+  border-radius: 1px;
+}
+
+.site-header-tabs-mobile {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .site-header-tabs {
-    gap: var(--space-4);
+    display: none;
+  }
+
+  .site-header-menu-toggle {
+    display: flex;
+  }
+
+  .site-header-tabs-mobile {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-purple-header);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding: var(--space-2) var(--space-4) var(--space-4);
+  }
+
+  .site-header-tab-mobile {
+    color: var(--color-white);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .site-header-tab-mobile:last-child {
+    border-bottom: none;
+  }
+
+  .site-header-tab-mobile.active {
+    color: var(--color-purple-tint);
   }
 }
 
