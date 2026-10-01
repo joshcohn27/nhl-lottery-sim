@@ -59,7 +59,9 @@ export function parseComboCsv(csv: string): LotteryComboRow[] {
       return {
         id: Number(id),
         balls: [Number(ball1), Number(ball2), Number(ball3), Number(ball4)] as [number, number, number, number],
-        slot: Number(slot),
+        // Number("") is 0, not NaN, which would make the reserved/redraw row
+        // (whose slot column is blank) look like a real slot 0 downstream.
+        slot: slot ? Number(slot) : NaN,
         slotSequence: slotSequence ? Number(slotSequence) : null,
       };
     });
