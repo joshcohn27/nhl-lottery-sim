@@ -2,10 +2,24 @@ name: Update standings
 
 on:
   schedule:
-    # Every 4 hours, offset a few minutes past the hour - GitHub documents
-    # that on-the-hour schedules are the likeliest to be delayed or dropped
-    # under load.
-    - cron: "7 */4 * * *"
+    # Targeted, not a flat interval - built around when standings actually
+    # need to be fresh by. Offset a few minutes past the hour since GitHub
+    # documents that on-the-hour schedules are the likeliest to be delayed.
+    #
+    # UTC hour -> America/New_York (EDT, UTC-4):
+    #   0,1,2,3  -> 8pm,9pm,10pm,11pm (previous UTC day = that evening ET)
+    #   4,5,6    -> 12am,1am,2am
+    #   10       -> 6am
+    #   14       -> 10am
+    #   18       -> 2pm
+    #   20,21,22,23 -> 4pm,5pm,6pm,7pm
+    #
+    # Net result in ET: hourly from 4pm through 2am (covers the 4pm/7pm/
+    # 10pm/midnight/2am deadlines with a buffer hour around each), then
+    # every 4 hours the rest of the day (6am, 10am, 2pm). During EST
+    # (UTC-5) this whole schedule runs an hour earlier in ET terms, which
+    # only adds slack to "no later than" deadlines, never violates them.
+    - cron: "7 0,1,2,3,4,5,6,10,14,18,20,21,22,23 * * *"
   workflow_dispatch:
 
 permissions:
