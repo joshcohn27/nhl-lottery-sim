@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { DRAFT_YEAR } from "../lib/config";
-import { parseProspectsCsv, prospectMatchesPositionFilter, type Prospect, type ProspectPositionFilter } from "../lib/prospects";
+import {
+  eliteProspectsUrl,
+  parseProspectsCsv,
+  prospectMatchesPositionFilter,
+  type Prospect,
+  type ProspectPositionFilter,
+} from "../lib/prospects";
 
 const PROSPECTS_CSV_PATH = "/mock/prospects.csv";
 
@@ -102,7 +108,17 @@ export default function ProspectRankingsPage() {
             {filtered.map((p) => (
               <tr key={p.rank}>
                 <td style={{ fontWeight: 800, color: "var(--color-purple)" }}>{p.rank}</td>
-                <td style={{ fontWeight: 700 }}>{p.name}</td>
+                <td style={{ fontWeight: 700 }}>
+                  <a
+                    className="prospect-ep-link"
+                    href={eliteProspectsUrl(p)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on Elite Prospects"
+                  >
+                    {p.name}
+                  </a>
+                </td>
                 <td>{p.pos}</td>
                 <td>{p.league}</td>
                 <td>{p.team ?? "-"}</td>

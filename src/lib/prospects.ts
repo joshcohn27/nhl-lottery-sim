@@ -4,6 +4,8 @@ export interface Prospect {
   pos: string;
   league: string;
   team?: string;
+  /** Verified Elite Prospects profile URL, when we have one on file. */
+  epUrl?: string;
 }
 
 export type ProspectPositionFilter = "all" | "centers" | "wingers" | "forwards" | "defense" | "goalies";
@@ -48,7 +50,7 @@ export function parseProspectsCsv(csv: string): Prospect[] {
     .slice(1)
     .filter(Boolean)
     .map((line) => {
-      const [rank, name, pos, league, team] = splitCsvLine(line);
+      const [rank, name, pos, league, team, epUrl] = splitCsvLine(line);
 
       return {
         rank: Number(rank),
@@ -56,10 +58,21 @@ export function parseProspectsCsv(csv: string): Prospect[] {
         pos,
         league: league ?? "",
         team: team || undefined,
+        epUrl: epUrl || undefined,
       };
     })
     .filter((prospect) => Number.isFinite(prospect.rank) && prospect.name)
     .sort((a, b) => a.rank - b.rank);
+}
+
+/**
+ * The prospect's verified Elite Prospects profile when we have one on file,
+ * otherwise an EP search pre-filled with their name - always a valid link,
+ * even for the ones we haven't individually verified.
+ */
+export function eliteProspectsUrl(prospect: Prospect): string {
+  if (prospect.epUrl) return prospect.epUrl;
+  return `https://www.eliteprospects.com/search/player?q=${encodeURIComponent(prospect.name)}`;
 }
 
 export function prospectMatchesPositionFilter(prospect: Prospect, filter: ProspectPositionFilter): boolean {

@@ -310,6 +310,19 @@ select {
   letter-spacing: 0.02em;
 }
 
+/* Prospect Rankings: player name links out to their Elite Prospects page. */
+.prospect-ep-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-purple);
+}
+
+.prospect-ep-link:hover,
+.prospect-ep-link:focus-visible {
+  color: var(--color-purple);
+  border-bottom-style: solid;
+}
+
 /* Mobile: wide stat tables scroll horizontally with a sticky first (team) column */
 .stat-table-scroll {
   width: 100%;

@@ -1,34 +1,34 @@
-rank,name,pos,league,team
-1,Landon DuPont,RD,WHL,Michigan
-2,Nazar Privalov,C/LW,KHL,CSKA Moskva
-3,Sergei Skvortsov,LW,KHL,Torpedo NN
-4,Alexis Joseph,C,QMJHL,Saint John
-5,Carter Meyer,C,QMJHL,Quebec
-6,Milan Sundström,C,U20 Nationell,MoDo Hockey
-7,Jonah Neuenschwander,F,NL,EHC Biel-Bienne
-8,Dima Zhilkin,RW,OHL,Saginaw
-9,Sammy Nelson,F,USHL,USDP
-10,Brock England,C,WHL,Seattle
-11,Brock Cripps,RD,WHL,Prince Albert
-12,Andrei Pustovoy,RW/C,MHL,Loko Yaroslavl
-13,Jaxon Jacobson,C,WHL,Brandon
-14,Timothy Kazda,F,OHL,Guelph
-15,Noah Davidson,F,WHL,Medicine Hat
-16,Jaakko Wycisk,RW/C,OHL,Guelph
-17,Yevgeni Yakunin,C,MHL,MHK Spartak Moskva
-18,Bosse Meijer,C,SHL,Frölunda HC
-19,Luca Santala,F,OHL,London
-20,Jamie Glance,RW/C,QMJHL,Saint John
-21,Shaeffer Gordon-Carroll,F,WHL,Medicine Hat
-22,Nolan Fitzhenry,C,USHL,USDP
-23,Petr Tomek,C,Czechia,Karlovy Vary
-24,Malik L'Italien,LD,QMJHL,Halifax
-25,Diego Gutierrez,RD,USHL,USDP
-26,Ryerson Edgar,C,OHL,Niagara
-27,Roberts Naudins,C/LW,WHL,Penticton
-28,Vladimir Shtyrkhunov,RD,QMJHL,Shawinigan
-29,Levi Harper,RD,OHL,Saginaw
-30,Tomas Selic,RW,Czechia U20,HC Kometa Brno
+rank,name,pos,league,team,epUrl
+1,Landon DuPont,RD,WHL,Michigan,https://www.eliteprospects.com/player/701503/landon-dupont
+2,Nazar Privalov,C/LW,KHL,CSKA Moskva,https://www.eliteprospects.com/player/993675/nazar-privalov
+3,Sergei Skvortsov,LW,KHL,Torpedo NN,https://www.eliteprospects.com/player/993791/sergei-skvortsov
+4,Alexis Joseph,C,QMJHL,Saint John,https://www.eliteprospects.com/player/701451/alexis-joseph
+5,Carter Meyer,C,QMJHL,Quebec,https://www.eliteprospects.com/player/978956/carter-meyer
+6,Milan Sundström,C,U20 Nationell,MoDo Hockey,https://www.eliteprospects.com/player/1010942/milan-sundstrom
+7,Jonah Neuenschwander,F,NL,EHC Biel-Bienne,https://www.eliteprospects.com/player/709625/jonah-neuenschwander
+8,Dima Zhilkin,RW,OHL,Saginaw,https://www.eliteprospects.com/player/628093/dima-zhilkin
+9,Sammy Nelson,F,USHL,USDP,https://www.eliteprospects.com/player/863816/sammy-nelson
+10,Brock England,C,WHL,Seattle,https://www.eliteprospects.com/player/967191/brock-england
+11,Brock Cripps,RD,WHL,Prince Albert,https://www.eliteprospects.com/player/701389/brock-cripps
+12,Andrei Pustovoy,RW/C,MHL,Loko Yaroslavl,https://www.eliteprospects.com/player/996108/andrei-pustovoi
+13,Jaxon Jacobson,C,WHL,Brandon,https://www.eliteprospects.com/player/628056/jaxon-jacobson
+14,Timothy Kazda,F,OHL,Guelph,https://www.eliteprospects.com/player/891171/timothy-kazda
+15,Noah Davidson,F,WHL,Medicine Hat,https://www.eliteprospects.com/player/871017/noah-davidson
+16,Jaakko Wycisk,RW/C,OHL,Guelph,https://www.eliteprospects.com/player/701479/jaakko-wycisk
+17,Yevgeni Yakunin,C,MHL,MHK Spartak Moskva,https://www.eliteprospects.com/player/993672/yevgeni-yakunin
+18,Bosse Meijer,C,SHL,Frölunda HC,https://www.eliteprospects.com/player/876780/bosse-meijer
+19,Luca Santala,F,OHL,London,https://www.eliteprospects.com/player/1009106/luca-santala
+20,Jamie Glance,RW/C,QMJHL,Saint John,https://www.eliteprospects.com/player/783136/jamie-glance
+21,Shaeffer Gordon-Carroll,F,WHL,Medicine Hat,https://www.eliteprospects.com/player/860250/shaeffer-gordon-carroll
+22,Nolan Fitzhenry,C,USHL,USDP,https://www.eliteprospects.com/player/690041/nolan-fitzhenry
+23,Petr Tomek,C,Czechia,Karlovy Vary,https://www.eliteprospects.com/player/937109/petr-tomek
+24,Malik L'Italien,LD,QMJHL,Halifax,https://www.eliteprospects.com/player/908578/malik-l-italien
+25,Diego Gutierrez,RD,USHL,USDP,https://www.eliteprospects.com/player/701427/diego-gutierrez
+26,Ryerson Edgar,C,OHL,Niagara,https://www.eliteprospects.com/player/1049432/ryerson-edgar
+27,Roberts Naudins,C/LW,WHL,Penticton,https://www.eliteprospects.com/player/1008169/roberts-naudins
+28,Vladimir Shtyrkhunov,RD,QMJHL,Shawinigan,https://www.eliteprospects.com/player/993668/vladimir-shtyrkhunov
+29,Levi Harper,RD,OHL,Saginaw,https://www.eliteprospects.com/player/747321/levi-harper
+30,Tomas Selic,RW,Czechia U20,HC Kometa Brno,https://www.eliteprospects.com/player/958777/tomas-selic
 31,Douglas Johnsson,RD,U20 Nationell,Skellefteå AIK
 32,Max Calce,C,DEL,Adler Mannheim
 33,Boston Tait,LD,WHL,Wenatchee
