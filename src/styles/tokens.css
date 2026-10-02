@@ -491,3 +491,35 @@ select {
   text-align: center;
   line-height: 1.6;
 }
+
+.footer-admin {
+  margin-top: var(--space-2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.footer-admin-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.footer-admin-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.footer-admin-status-error {
+  color: #a94442;
+}
+
+.footer-admin-status-done {
+  color: var(--color-purple);
+}

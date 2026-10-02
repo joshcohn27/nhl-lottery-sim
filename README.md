@@ -1,73 +1,84 @@
-# React + TypeScript + Vite
+# NHL Mock Draft Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fan-made simulator for the 2027 NHL Draft Lottery and first-round (and
+second-round) mock draft, built with React 19, TypeScript, and Vite. Live at
+[nhlmock.joshbcohn.com](https://nhlmock.joshbcohn.com).
 
-Currently, two official plugins are available:
+Unofficial fan project. Not affiliated with or endorsed by the NHL or any
+club. Team names and logos are trademarks of their respective owners.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Pages
 
-## React Compiler
+- **Lottery Sim** (`/`) - draws the two-ball NHL draft lottery live (manual
+  ball-by-ball or instant sim), then flows into the mock draft.
+- **Mock Draft** (`/draft`) - same flow as Lottery Sim; build a full
+  first-round (and optional second-round) mock draft pick by pick, or
+  auto-pick some/all of it.
+- **Prospect Rankings** (`/prospects`) - searchable/filterable list of all
+  draft-eligible prospects.
+- **Full Order** (`/full-order`) - the complete projected draft order with
+  all traded-pick conditions applied.
+- **Pick Odds** (`/pick-odds`) - the exact (not simulated) lottery
+  probability matrix for every lottery team/pick combination.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## How the lottery/draft logic works
 
-## Expanding the ESLint configuration
+- The 16-team lottery pool is whichever teams are **not** in a playoff spot
+  "if the playoffs started today" (division top 3 + 2 wildcards per
+  conference), recomputed from live standings - not just the bottom 16 by
+  points.
+- Standings ties are broken using the NHL's actual published procedure:
+  points -> fewer games played -> regulation wins -> ROW -> total wins ->
+  goal differential -> goals for.
+- Picks 17-32 (and 49-64 in two-round mode) follow the real
+  playoff-advancement order once playoff results exist: non-finalists by
+  regular-season record, then conference-final losers, then the Stanley Cup
+  Final loser and champion.
+- Traded first- and second-round picks (including conditional/protected
+  ones) are layered on top of the standings-derived order - see
+  `public/data/pick-trades.json`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Data and how it stays fresh
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `public/data/standings.json` - live NHL standings, auto-updated by
+  `scripts/update-standings.mjs`.
+- `public/data/pick-trades.json` - traded-pick overlay rules for both
+  rounds, sourced from Wikipedia/NHL.com/team press releases.
+- `public/data/playoff-results.json` - playoff advancement results, once
+  the postseason happens.
+- `public/mock/prospects.csv` - draft-eligible prospect rankings.
+- `public/mock/combos.csv` - the 1,001 four-ball lottery combinations and
+  which lottery slot each resolves to.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Standings refresh two ways:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. **Scheduled**: `.github/workflows/update-standings.yml` runs the updater
+   on a cron targeted around actual NHL game windows (hourly 4pm-2am
+   America/New_York, every 4 hours the rest of the day) and commits
+   `standings.json` back to the repo if it changed.
+2. **On demand**: a password-gated "Update standings" link in the site
+   footer calls a small Vercel serverless function
+   (`api/trigger-update.js`), which dispatches the same GitHub Actions
+   workflow immediately. The GitHub token and password are never shipped to
+   the browser - they're Vercel environment variables:
+   - `ADMIN_PASSWORD` - the password the footer control checks.
+   - `GITHUB_DISPATCH_TOKEN` - a fine-grained GitHub PAT scoped to just this
+     repo with "Actions: read and write" permission only (no `Contents` or
+     `Workflows` scope, so it can't push code or edit the workflow itself).
+
+The updater never overwrites a good `standings.json` with a bad one - on any
+fetch failure, unexpected season, or implausible result, it leaves the
+existing file alone.
+
+## Development
+
+```sh
+npm install
+npm run dev        # start the Vite dev server
+npm run build      # typecheck + production build
+npm run lint        # eslint
+npm run test        # vitest
+npm run update-standings  # run the standings updater locally
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Deployment is via Vercel, auto-deploying from `master`.
