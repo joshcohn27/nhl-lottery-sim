@@ -33,15 +33,18 @@ export function Footer() {
       }
 
       if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        console.error(`Update standings failed: HTTP ${response.status}`, detail);
         setStatus("error");
-        setMessage("Update failed - try again later.");
+        setMessage(`Update failed (HTTP ${response.status}) - see console for details.`);
         return;
       }
 
       localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, password);
       setStatus("done");
       setMessage("Update triggered - standings will refresh in about a minute.");
-    } catch {
+    } catch (err) {
+      console.error("Update standings failed:", err);
       setStatus("error");
       setMessage("Update failed - check your connection.");
     }
