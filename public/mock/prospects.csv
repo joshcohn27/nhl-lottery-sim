@@ -29,53 +29,53 @@ rank,name,pos,league,team,epUrl
 28,Vladimir Shtyrkhunov,RD,QMJHL,Shawinigan,https://www.eliteprospects.com/player/993668/vladimir-shtyrkhunov
 29,Levi Harper,RD,OHL,Saginaw,https://www.eliteprospects.com/player/747321/levi-harper
 30,Tomas Selic,RW,Czechia U20,HC Kometa Brno,https://www.eliteprospects.com/player/958777/tomas-selic
-31,Douglas Johnsson,RD,U20 Nationell,Skellefteå AIK
-32,Max Calce,C,DEL,Adler Mannheim
-33,Boston Tait,LD,WHL,Wenatchee
-34,Gunnar Conboy,C,USHL,Green Bay
-35,Kohyn Eshkawkogan,RD,OHL,Ottawa
-36,Kayden Stroeder,F,WHL,Edmonton
-37,Gavin Burcar,F,WHL,Spokane
-38,Maxmilian Mares,F,QMJHL,Rimouski
-39,Aleks Kulemin,C,OHL,Kingston
-40,Dorian Eklund Aspe,F,U20 Nationell,Djurgårdens IF
-41,Johnny McLaughlin,F,OHL,Windsor
-42,Ben Geiger,RD,USHL,USDP
-43,Lenni Kokkonen,RD,U20 SM-sarja,Kärpät
-44,Daniil Yermolov,F,MHL,Krasnaya Armiya
-45,David Huk,C,WHL,Tri-City
-46,Cooper McAslan,RD,OHL,London
-47,James Scantlebury,C,QMJHL,Quebec
-48,Oliver Botka,LD,Slovak,HK Nitra
-49,Filip Kovalcik,LD,QMJHL,Drummondville
-50,Oskars Lūks,LD,WHL,Prince Albert
-51,Lukas Kachlir,RD,Czechia U20,Liberec
-52,Michal Hartl,F,Czechia U20,HC Kometa Brno
-53,Eric Tu,G,WHL,Calgary
-54,Roni Kuukasjärvi,RD,U20 SM-sarja,Ilves
-55,Jake Prunty,RD,USHL,USDP
-56,Daniil Savin,C,MHL,SKA-1946
-57,Rocco Pelosi,C,USHL,USDP
-58,Ilya Kolmakov,LW,QMJHL,Sherbrooke
-59,Jonas Schwarz,RW/C,U20 SM-sarja,Lukko
-60,Cam Warren,F,OHL,North Bay
-61,Loui Karlsson,RW,U20 Nationell,Leksands IF
-62,Benjamin Nyström,F,U20 Nationell,Luleå HF
-63,Oliver Sundberg,RW,U20 Nationell,Djurgårdens IF
-64,Brenner Lammens,C,OHL,Sarnia
-65,Finnegan Sears,LW,USHL,USDP
-66,Trevor Daley Jr.,LW,OHL,Soo
-67,Alex Forrest,LD,OHL,Kitchener
-68,Wiggo Forsberg,F,U20 Nationell,Frölunda HC
-69,Kaden McGregor,C,OHL,Brantford
-70,Keaton Ardagh,RW,OHL,Brampton
-71,Maxim Simko,C,USHL,Muskegon
-72,Charlie Murata,F,OHL,Flint
-73,Easton Walos,C,OHL,Sarnia
-74,Prabh Bhathal,F,WHL,Brandon
-75,Grady Pichette,RD,WHL,Lethbridge
-76,Adam Nemec,LW,OHL,Brantford
-77,Roman Kozhevnikov,LW,VHL,Chelmet Chelyabinsk
-78,Ben Harvey,F,WHL,Prince Albert
-79,Felix Timraz-Westin,G,U20 Nationell,Växjö Lakers
-80,Illarion Babkin,RD,MHL,Spartak-MAH Moskva
+31,Douglas Johnsson,RD,U20 Nationell,Skellefteå AIK,https://www.eliteprospects.com/player/1063798/douglas-johnsson
+32,Max Calce,C,DEL,Adler Mannheim,https://www.eliteprospects.com/player/879926/max-calce
+33,Boston Tait,LD,WHL,Wenatchee,https://www.eliteprospects.com/player/966908/boston-tait
+34,Gunnar Conboy,C,USHL,Green Bay,https://www.eliteprospects.com/player/951205/gunnar-conboy
+35,Kohyn Eshkawkogan,RD,OHL,Ottawa,https://www.eliteprospects.com/player/890491/kohyn-eshkawkogan
+36,Kayden Stroeder,F,WHL,Edmonton,https://www.eliteprospects.com/player/966892/kayden-stroeder
+37,Gavin Burcar,F,WHL,Spokane,https://www.eliteprospects.com/player/956634/gavin-burcar
+38,Maxmilian Mares,F,QMJHL,Rimouski,https://www.eliteprospects.com/player/933159/maxmilian-mares
+39,Aleks Kulemin,C,OHL,Kingston,https://www.eliteprospects.com/player/1092115/aleks-kulemin
+40,Dorian Eklund Aspe,F,U20 Nationell,Djurgårdens IF,https://www.eliteprospects.com/player/971366/dorian-eklund-aspe
+41,Johnny McLaughlin,F,OHL,Windsor,https://www.eliteprospects.com/player/968256/johnny-mclaughlin
+42,Ben Geiger,RD,USHL,USDP,https://www.eliteprospects.com/player/690042/ben-geiger
+43,Lenni Kokkonen,RD,U20 SM-sarja,Kärpät,https://www.eliteprospects.com/player/1113813/lenni-kokkonen
+44,Daniil Yermolov,F,MHL,Krasnaya Armiya,https://www.eliteprospects.com/player/993670/daniil-yermolov
+45,David Huk,C,WHL,Tri-City,https://www.eliteprospects.com/player/977169/david-huk
+46,Cooper McAslan,RD,OHL,London,https://www.eliteprospects.com/player/1022082/cooper-mcaslan
+47,James Scantlebury,C,QMJHL,Quebec,https://www.eliteprospects.com/player/701457/james-scantlebury
+48,Oliver Botka,LD,Slovak,HK Nitra,https://www.eliteprospects.com/player/961122/oliver-botka
+49,Filip Kovalcik,LD,QMJHL,Drummondville,https://www.eliteprospects.com/player/958724/filip-kovalcik
+50,Oskars Lūks,LD,WHL,Prince Albert,https://www.eliteprospects.com/player/955081/oskars-luks
+51,Lukas Kachlir,RD,Czechia U20,Liberec,https://www.eliteprospects.com/player/917756/lukas-kachlir
+52,Michal Hartl,F,Czechia U20,HC Kometa Brno,https://www.eliteprospects.com/player/982803/michal-hartl
+53,Eric Tu,G,WHL,Calgary,https://www.eliteprospects.com/player/885753/eric-tu
+54,Roni Kuukasjärvi,RD,U20 SM-sarja,Ilves,https://www.eliteprospects.com/player/1032870/roni-kuukasjarvi
+55,Jake Prunty,RD,USHL,USDP,https://www.eliteprospects.com/player/978951/jake-prunty
+56,Daniil Savin,C,MHL,SKA-1946,https://www.eliteprospects.com/player/1057262/daniil-savin
+57,Rocco Pelosi,C,USHL,USDP,https://www.eliteprospects.com/player/701312/rocco-pelosi
+58,Ilya Kolmakov,LW,QMJHL,Sherbrooke,https://www.eliteprospects.com/player/896021/ilya-kolmakov
+59,Jonas Schwarz,RW/C,U20 SM-sarja,Lukko,https://www.eliteprospects.com/player/915294/jonas-schwarz
+60,Cam Warren,F,OHL,North Bay,https://www.eliteprospects.com/player/701379/camryn-warren
+61,Loui Karlsson,RW,U20 Nationell,Leksands IF,https://www.eliteprospects.com/player/1009026/loui-karlsson
+62,Benjamin Nyström,F,U20 Nationell,Luleå HF,https://www.eliteprospects.com/player/1053297/benjamin-nystrom
+63,Oliver Sundberg,RW,U20 Nationell,Djurgårdens IF,https://www.eliteprospects.com/player/978511/oliver-sundberg
+64,Brenner Lammens,C,OHL,Sarnia,https://www.eliteprospects.com/player/1022121/brenner-lammens
+65,Finnegan Sears,LW,USHL,USDP,https://www.eliteprospects.com/player/701476/finnegan-sears
+66,Trevor Daley Jr.,LW,OHL,Soo,https://www.eliteprospects.com/player/701361/trevor-daley-jr
+67,Alex Forrest,LD,OHL,Kitchener,https://www.eliteprospects.com/player/1032811/alex-forrest
+68,Wiggo Forsberg,F,U20 Nationell,Frölunda HC,https://www.eliteprospects.com/player/971729/wiggo-forsberg
+69,Kaden McGregor,C,OHL,Brantford,https://www.eliteprospects.com/player/701314/kaden-mcgregor
+70,Keaton Ardagh,RW,OHL,Brampton,https://www.eliteprospects.com/player/987206/keaton-ardagh
+71,Maxim Simko,C,USHL,Muskegon,https://www.eliteprospects.com/player/937119/maxim-simko
+72,Charlie Murata,F,OHL,Flint,https://www.eliteprospects.com/player/987179/charlie-murata
+73,Easton Walos,C,OHL,Sarnia,https://www.eliteprospects.com/player/862359/easton-walos
+74,Prabh Bhathal,F,WHL,Brandon,https://www.eliteprospects.com/player/970435/prabh-bhathal
+75,Grady Pichette,RD,WHL,Lethbridge,https://www.eliteprospects.com/player/879898/grady-pichette
+76,Adam Nemec,LW,OHL,Brantford,https://www.eliteprospects.com/player/986792/adam-nemec
+77,Roman Kozhevnikov,LW,VHL,Chelmet Chelyabinsk,https://www.eliteprospects.com/player/995203/roman-kozhevnikov
+78,Ben Harvey,F,WHL,Prince Albert,https://www.eliteprospects.com/player/701506/ben-harvey
+79,Felix Timraz-Westin,G,U20 Nationell,Växjö Lakers,https://www.eliteprospects.com/player/887865/felix-timraz-westin
+80,Illarion Babkin,RD,MHL,Spartak-MAH Moskva,https://www.eliteprospects.com/player/1138530/illarion-babkin
