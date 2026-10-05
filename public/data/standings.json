@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-04T21:17:59.498Z",
+  "updated": "2026-10-05T00:51:30.894Z",
   "seasonId": 20262027,
   "provisional": false,
   "teams": [
@@ -554,8 +554,8 @@
       "inPlayoffs": true
     },
     {
-      "abbrev": "NYR",
-      "name": "NY Rangers",
+      "abbrev": "UTA",
+      "name": "Utah",
       "gamesPlayed": 3,
       "points": 4,
       "pointPctg": 0.666667,
@@ -564,15 +564,15 @@
       "wins": 2,
       "losses": 1,
       "otLosses": 0,
-      "goalDifferential": 3,
-      "goalsFor": 7,
-      "streakCode": "W",
-      "streakCount": 2,
+      "goalDifferential": 7,
+      "goalsFor": 12,
+      "streakCode": "L",
+      "streakCount": 1,
       "l10Wins": 2,
       "l10Losses": 1,
       "l10OtLosses": 0,
-      "divisionAbbrev": "M",
-      "conferenceAbbrev": "E",
+      "divisionAbbrev": "C",
+      "conferenceAbbrev": "W",
       "inPlayoffs": true
     },
     {
@@ -642,28 +642,6 @@
       "inPlayoffs": true
     },
     {
-      "abbrev": "UTA",
-      "name": "Utah",
-      "gamesPlayed": 2,
-      "points": 4,
-      "pointPctg": 1,
-      "regulationWins": 2,
-      "row": 2,
-      "wins": 2,
-      "losses": 0,
-      "otLosses": 0,
-      "goalDifferential": 9,
-      "goalsFor": 10,
-      "streakCode": "W",
-      "streakCount": 2,
-      "l10Wins": 2,
-      "l10Losses": 0,
-      "l10OtLosses": 0,
-      "divisionAbbrev": "C",
-      "conferenceAbbrev": "W",
-      "inPlayoffs": true
-    },
-    {
       "abbrev": "COL",
       "name": "Colorado",
       "gamesPlayed": 2,
@@ -705,6 +683,28 @@
       "l10OtLosses": 1,
       "divisionAbbrev": "P",
       "conferenceAbbrev": "W",
+      "inPlayoffs": true
+    },
+    {
+      "abbrev": "NYR",
+      "name": "NY Rangers",
+      "gamesPlayed": 4,
+      "points": 6,
+      "pointPctg": 0.75,
+      "regulationWins": 3,
+      "row": 3,
+      "wins": 3,
+      "losses": 1,
+      "otLosses": 0,
+      "goalDifferential": 5,
+      "goalsFor": 11,
+      "streakCode": "W",
+      "streakCount": 3,
+      "l10Wins": 3,
+      "l10Losses": 1,
+      "l10OtLosses": 0,
+      "divisionAbbrev": "M",
+      "conferenceAbbrev": "E",
       "inPlayoffs": true
     }
   ]
