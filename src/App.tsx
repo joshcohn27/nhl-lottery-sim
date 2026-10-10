@@ -4,6 +4,7 @@ import LotteryPage from "./pages/LotteryPage";
 import ProspectRankingsPage from "./pages/ProspectRankingsPage";
 import FullOrderPage from "./pages/FullOrderPage";
 import PickOddsPage from "./pages/PickOddsPage";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/pick-odds" element={<PickOddsPage />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }
