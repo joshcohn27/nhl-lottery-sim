@@ -423,3 +423,33 @@
 .draft-prereq-note strong {
   color: var(--color-purple);
 }
+
+/* Full-screen viewer for the saved draft: used on phones, and on desktop
+   only if the browser blocks the new tab. The Close button here is for the
+   desktop fallback - on phones the embedded page has its own auto-hiding
+   bar, so nothing sits on top of the screenshot. */
+.save-view {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--color-white);
+}
+
+.save-view iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.save-view-close {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+@media (max-width: 700px) {
+  .save-view-close {
+    display: none;
+  }
+}

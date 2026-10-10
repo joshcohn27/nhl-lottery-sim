@@ -13,6 +13,13 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.7.0 - 2026-10-10
+- Save Draft on phones opens a full-screen view where each round fills exactly
+  one screen, so a single screenshot captures a round. It opens inside the
+  page, so it also works in in-app browsers that block new tabs.
+- If a desktop browser blocks the new tab, Save Draft now shows the same
+  in-page view instead of downloading an HTML file.
+
 ## 2.6.0 - 2026-10-09
 - Footer: "Contact support" link that opens an X direct message to the site's
   account.

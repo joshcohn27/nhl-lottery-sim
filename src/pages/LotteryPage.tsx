@@ -164,6 +164,8 @@ function BallSlot({ idx }: { idx: number }) {
   );
 }
 
+const SAVE_VIEW_CLOSE_MESSAGE = "close-draft-save-view";
+
 export default function LotteryPage() {
   const { pathname } = useLocation();
   const pickLockRef = useRef(false);
@@ -203,6 +205,8 @@ export default function LotteryPage() {
   const [positionFilter, setPositionFilter] = useState<ProspectPositionFilter>("all");
   const [copyLabel, setCopyLabel] = useState("Copy Results");
   const [lookupOpen, setLookupOpen] = useState(false);
+  const [saveViewHtml, setSaveViewHtml] = useState<string | null>(null);
+  const saveViewFrameRef = useRef<HTMLIFrameElement>(null);
   const [lookupSearch, setLookupSearch] = useState("");
 
   const [round2Assignments, setRound2Assignments] = useState<Record<number, Prospect>>({});
@@ -941,12 +945,28 @@ export default function LotteryPage() {
 
       const playerLabel = player ? `${player.name} (${formatProspectMeta(player)})` : "-";
 
+      // Phone layout: one short line per pick, so 32 rows fit on one screen.
+      const recipients = team.split(MULTI_RECIPIENT_SEPARATOR);
+      const shortTeam =
+        recipients.length > 1 ? recipients.map((name) => abbrevForTeamName(name) ?? name).join("/") : team;
+      const viaTeam = note.match(/^\(via ([^,)]+)/)?.[1];
+      const shortVia = viaTeam ? ` <span class="via">via ${escapeHtml(abbrevForTeamName(viaTeam) ?? viaTeam)}</span>` : "";
+      const shortPlayer = player
+        ? `${escapeHtml(player.name)} <span class="via">${escapeHtml(player.pos)}</span>`
+        : "-";
+
       return `
         <div class="pick-row${note ? " has-note" : ""}">
           <div class="pick-number">${escapeHtml(pickNum)}</div>
           ${logoTag(team)}
-          <div class="team-name">${escapeHtml(team)}</div>
-          <div class="player-name">${escapeHtml(playerLabel)}</div>
+          <div class="team-name">
+            <span class="wide-only">${escapeHtml(team)}</span>
+            <span class="phone-only">${escapeHtml(shortTeam)}${shortVia}</span>
+          </div>
+          <div class="player-name">
+            <span class="wide-only">${escapeHtml(playerLabel)}</span>
+            <span class="phone-only">${shortPlayer}</span>
+          </div>
           ${note ? `<div class="pick-note">${escapeHtml(note)}</div>` : ""}
         </div>
       `;
@@ -1140,9 +1160,143 @@ export default function LotteryPage() {
       cursor: pointer;
     }
 
+    .phone-only,
+    .phone-bar {
+      display: none;
+    }
+
+    .via {
+      font-weight: 400;
+      color: #6b6b75;
+      font-size: 0.85em;
+    }
+
     @media print {
       body { width: auto; }
       .print-actions { display: none; }
+    }
+
+    /* Phones: each round fills exactly one screen (and snaps to it), so one
+       screenshot captures a whole round and a full-page capture gets both.
+       Sizes scale with the screen height so 32 rows always fit. */
+    @media screen and (max-width: 700px) {
+      html {
+        scroll-snap-type: y mandatory;
+      }
+
+      body {
+        width: auto;
+        --fs: min(11.5px, 1.6vh);
+        --fs: min(11.5px, 1.6svh);
+      }
+
+      .print-actions,
+      .wide-only,
+      .pick-note {
+        display: none;
+      }
+
+      .phone-only {
+        display: inline;
+      }
+
+      .round-page {
+        height: 100vh;
+        height: 100svh;
+        padding: 6px 8px 4px;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+      }
+
+      h1 {
+        font-size: calc(var(--fs) * 1.4);
+      }
+
+      .rule-frame {
+        margin: 0 0 1px;
+      }
+
+      .subtitle {
+        font-size: calc(var(--fs) * 0.8);
+        margin-bottom: 2px;
+      }
+
+      .pick-row {
+        grid-template-columns: calc(var(--fs) * 1.8) calc(var(--fs) * 1.7) 1fr 1.3fr;
+        column-gap: 6px;
+        padding: 0 2px;
+      }
+
+      .has-note .pick-number,
+      .has-note .logo,
+      .has-note .logo-pair,
+      .has-note .logo-chip {
+        grid-row: auto;
+      }
+
+      .pick-number {
+        font-size: calc(var(--fs) * 1.1);
+      }
+
+      .team-name,
+      .player-name {
+        font-size: var(--fs);
+        line-height: 1.15;
+      }
+
+      .logo,
+      .logo-chip,
+      .logo-pair {
+        width: calc(var(--fs) * 1.7);
+        height: calc(var(--fs) * 1.45);
+      }
+
+      .logo-pair {
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+      }
+
+      .logo-pair img {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Shown only when this page is embedded in the site's full-screen
+         viewer. Fades out so it stays out of the screenshot; a tap brings
+         it back. */
+      .embedded .phone-bar {
+        display: flex;
+        position: fixed;
+        left: 8px;
+        right: 8px;
+        bottom: 10px;
+        z-index: 10;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 10px 8px 14px;
+        border-radius: 8px;
+        background: rgba(51, 51, 51, 0.92);
+        color: #fff;
+        font-size: 13px;
+        transition: opacity 0.3s ease;
+      }
+
+      .embedded .phone-bar.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .phone-bar button {
+        flex: 0 0 auto;
+        background: #7b5ea7;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 14px;
+        font-weight: 700;
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -1150,6 +1304,37 @@ export default function LotteryPage() {
   <div class="print-actions">
     <button onclick="window.print()">Print / Save PDF</button>
   </div>
+
+  <div class="phone-bar" id="phone-bar">
+    <span>${
+      mockRounds === 2 && round2Picks.length > 0
+        ? "Screenshot this screen, then swipe up for Round 2."
+        : "Screenshot this screen to save your draft."
+    } Tap to hide this bar.</span>
+    <button type="button" id="phone-close">Close</button>
+  </div>
+  <script>
+    (function () {
+      if (window.parent === window) return;
+      document.body.classList.add("embedded");
+      var bar = document.getElementById("phone-bar");
+      var timer;
+      function show() {
+        bar.classList.remove("hidden");
+        clearTimeout(timer);
+        timer = setTimeout(function () { bar.classList.add("hidden"); }, 4000);
+      }
+      document.getElementById("phone-close").addEventListener("click", function (event) {
+        event.stopPropagation();
+        window.parent.postMessage({ type: "${SAVE_VIEW_CLOSE_MESSAGE}" }, "*");
+      });
+      document.addEventListener("click", function () {
+        if (bar.classList.contains("hidden")) show();
+        else bar.classList.add("hidden");
+      });
+      show();
+    })();
+  </script>
 
   <div class="round-page">
     <div class="rule-frame"><h1>${DRAFT_YEAR} NHL Mock Draft</h1></div>
@@ -1171,6 +1356,13 @@ export default function LotteryPage() {
 </body>
 </html>`;
 
+    // Phones get a full-screen viewer inside the page: a Letter-sized tab is
+    // unreadable there, and in-app browsers often refuse to open new tabs.
+    if (window.matchMedia("(max-width: 700px)").matches) {
+      setSaveViewHtml(html);
+      return;
+    }
+
     const draftWindow = window.open("", "_blank");
 
     if (draftWindow) {
@@ -1181,16 +1373,20 @@ export default function LotteryPage() {
       return;
     }
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `${DRAFT_YEAR}-nhl-mock-draft.html`;
-    link.click();
-
-    URL.revokeObjectURL(url);
+    setSaveViewHtml(html);
   }, [draftPicks, mockRounds, round2Picks]);
+
+  useEffect(() => {
+    if (saveViewHtml === null) return;
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== saveViewFrameRef.current?.contentWindow) return;
+      if (event.data?.type === SAVE_VIEW_CLOSE_MESSAGE) setSaveViewHtml(null);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [saveViewHtml]);
 
   const filteredProspects = prospects.filter((p) => {
     const searchLower = search.toLowerCase();
@@ -1852,6 +2048,15 @@ export default function LotteryPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {saveViewHtml !== null && (
+        <div className="save-view">
+          <iframe ref={saveViewFrameRef} title={`${DRAFT_YEAR} NHL Mock Draft`} srcDoc={saveViewHtml} />
+          <button type="button" className="save-view-close btn btn-outline" onClick={() => setSaveViewHtml(null)}>
+            Close
+          </button>
         </div>
       )}
 
