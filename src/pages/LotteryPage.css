@@ -387,3 +387,22 @@
 .modal-body {
   overflow: auto;
 }
+
+/* Mobile: the lottery standings' team cell can carry a logo, name, status
+   pill, AND "Ball N" chips (after 3 balls are drawn) - on a narrow screen
+   that's too much for one line inside the sticky team column, so let it
+   wrap onto a second line instead of overflowing/getting clipped. */
+@media (max-width: 720px) {
+  .lottery-team-cell {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    max-width: 150px;
+  }
+
+  .fourth-ball-row {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}

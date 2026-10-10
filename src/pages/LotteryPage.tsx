@@ -346,6 +346,8 @@ export default function LotteryPage() {
     for (const rule of pickTrades?.round1 ?? []) {
       if (rule.type === "unconditional") {
         tooltips.set(rule.from, `This pick has been traded to ${rule.to}.`);
+      } else if (rule.type === "multiRecipient") {
+        tooltips.set(rule.from, `This pick has been traded, split between ${rule.to.join(" or ")}.`);
       } else if (rule.type === "protectedTopN") {
         tooltips.set(
           rule.team,
@@ -1216,7 +1218,7 @@ export default function LotteryPage() {
       <tr key={team.abbrev} className={isAlive ? "lottery-row-alive" : isEliminated ? "lottery-row-eliminated" : ""}>
         <td>{idx + 1}</td>
         <td>
-          <span className="team-cell">
+          <span className="team-cell lottery-team-cell">
             <PickTeamCell team={team} />
             {isAlive && !lottoDone && <span className="pill pill-alive">Alive</span>}
             {isEliminated && <span className="pill pill-out">Out</span>}
@@ -1225,7 +1227,7 @@ export default function LotteryPage() {
             )}
             {!won && lottoDone && <span className="pill">{assignedLotteryPick}</span>}
             {fourthBalls.length > 0 && (
-              <span>
+              <span className="fourth-ball-row">
                 {fourthBalls.map((ball) => (
                   <span key={ball} className="fourth-ball-chip">
                     Ball {ball}
@@ -1373,16 +1375,6 @@ export default function LotteryPage() {
             </div>
           </div>
 
-          {advanceHistory.length > 0 && (
-            <div className="advance-history-note">
-              <strong>
-                Advance history ({DRAFT_YEAR - 4}-{DRAFT_YEAR - 1}):
-              </strong>{" "}
-              {advanceHistory.map((h) => `${h.team} (${h.wins})`).join(", ")}. One more lottery advance within this
-              window would make that team ineligible to move up.
-            </div>
-          )}
-
           <div className="stat-table-scroll">
             <table className="stat-table">
               <thead>{statHeaderRow}</thead>
@@ -1399,6 +1391,16 @@ export default function LotteryPage() {
               </tbody>
             </table>
           </div>
+
+          {advanceHistory.length > 0 && (
+            <div className="advance-history-note">
+              Under NHL rules, a team can win a lottery drawing (jump up in the draft order) at most twice within any
+              five-year span. In the {DRAFT_YEAR - 4}-{DRAFT_YEAR - 1} window counting into this year's lottery,{" "}
+              {advanceHistory.map((h) => `${h.team} (${h.wins} win${h.wins === 1 ? "" : "s"})`).join(", ")} already{" "}
+              {advanceHistory.length === 1 ? "has" : "have"} one. Winning again this year would hit that limit, so
+              that team would be capped at its current slot instead of jumping further up.
+            </div>
+          )}
         </>
       )}
 

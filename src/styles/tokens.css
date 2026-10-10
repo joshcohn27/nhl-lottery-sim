@@ -310,6 +310,18 @@ select {
   letter-spacing: 0.02em;
 }
 
+.trade-recipient-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.trade-recipient-sep {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-bold);
+  margin-right: var(--space-1);
+}
+
 /* Prospect Rankings: player name links out to their Elite Prospects page. */
 .prospect-ep-link {
   color: inherit;
@@ -346,6 +358,14 @@ select {
   .stat-table-scroll .stat-table th:nth-child(2),
   .stat-table-scroll .stat-table td:nth-child(2) {
     left: 28px;
+  }
+
+  /* The full-width divider cell is also a "first column" cell, so the sticky
+     rule above would paint it white and leave its centered label off-screen. */
+  .stat-table-scroll .stat-table .end-of-lottery-row td {
+    background: #ececec;
+    text-align: left;
+    padding-left: var(--space-3);
   }
 
   .page-title {
@@ -505,34 +525,6 @@ select {
   line-height: 1.6;
 }
 
-.footer-admin {
-  margin-top: var(--space-2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.footer-admin-link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.footer-admin-link:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.footer-admin-status-error {
-  color: #a94442;
-}
-
-.footer-admin-status-done {
+.site-footer a {
   color: var(--color-purple);
 }

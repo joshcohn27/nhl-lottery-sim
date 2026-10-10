@@ -1,12 +1,15 @@
 import { TeamLogo } from "./TeamLogo";
 import { abbrevForTeamName } from "../lib/teams";
+import { MULTI_RECIPIENT_SEPARATOR } from "../lib/pickTrades";
 
 /**
  * Renders a draft-pick's "team" cell. When the pick's note records a
  * "(via X...)" trade, shows the original team (whose standings slot this is)
  * at normal weight, a circular arrow, then the recipient as a compact
- * abbreviation + logo. Synthetic labels like "Toronto (pending: Boston or
- * Philadelphia)" render as plain muted text since they aren't a resolved team.
+ * abbreviation + logo - or, for a genuinely split pick (team value joined
+ * with "/"), both recipients' abbreviation + logo. Synthetic labels like
+ * "Toronto (pending: Boston or Philadelphia)" render as plain muted text
+ * since they aren't a resolved team.
  */
 export function TradedPickTeam({ team, note }: { team: string; note: string }) {
   const isPending = team.includes("(pending");
@@ -25,7 +28,7 @@ export function TradedPickTeam({ team, note }: { team: string; note: string }) {
   }
 
   const originalTeam = viaMatch[1];
-  const recipientAbbrev = abbrevForTeamName(team) ?? team;
+  const recipients = team.split(MULTI_RECIPIENT_SEPARATOR);
 
   return (
     <span className="team-cell" title={note}>
@@ -34,8 +37,13 @@ export function TradedPickTeam({ team, note }: { team: string; note: string }) {
       <span className="trade-arrow" aria-hidden="true">
         &#8635;
       </span>
-      <span className="trade-recipient">{recipientAbbrev}</span>
-      <TeamLogo teamName={team} size={18} />
+      {recipients.map((recipient, idx) => (
+        <span className="trade-recipient-group" key={recipient}>
+          {idx > 0 && <span className="trade-recipient-sep">/</span>}
+          <span className="trade-recipient">{abbrevForTeamName(recipient) ?? recipient}</span>
+          <TeamLogo teamName={recipient} size={18} />
+        </span>
+      ))}
     </span>
   );
 }

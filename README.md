@@ -50,21 +50,11 @@ club. Team names and logos are trademarks of their respective owners.
 - `public/mock/combos.csv` - the 1,001 four-ball lottery combinations and
   which lottery slot each resolves to.
 
-Standings refresh two ways:
-
-1. **Scheduled**: `.github/workflows/update-standings.yml` runs the updater
-   on a cron targeted around actual NHL game windows (hourly 4pm-2am
-   America/New_York, every 4 hours the rest of the day) and commits
-   `standings.json` back to the repo if it changed.
-2. **On demand**: a password-gated "Update standings" link in the site
-   footer calls a small Vercel serverless function
-   (`api/trigger-update.js`), which dispatches the same GitHub Actions
-   workflow immediately. The GitHub token and password are never shipped to
-   the browser - they're Vercel environment variables:
-   - `ADMIN_PASSWORD` - the password the footer control checks.
-   - `GITHUB_DISPATCH_TOKEN` - a fine-grained GitHub PAT scoped to just this
-     repo with "Actions: read and write" permission only (no `Contents` or
-     `Workflows` scope, so it can't push code or edit the workflow itself).
+Standings refresh automatically: `.github/workflows/update-standings.yml`
+runs the updater on a cron targeted around actual NHL game windows (hourly
+4pm-2am America/New_York, every 4 hours the rest of the day) and commits
+`standings.json` back to the repo if it changed. It can also be run manually
+from the repo's Actions tab.
 
 The updater never overwrites a good `standings.json` with a bad one - on any
 fetch failure, unexpected season, or implausible result, it leaves the

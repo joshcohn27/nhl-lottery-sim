@@ -11,6 +11,16 @@ export interface UnconditionalRule {
   source?: string;
 }
 
+/** A pick that's genuinely split between two possible recipients with no
+ * way to resolve it from standings/lottery data (e.g. the owning team gets
+ * to choose later) - both recipients are shown together, always. */
+export interface MultiRecipientRule {
+  type: "multiRecipient";
+  from: string;
+  to: [string, string];
+  source?: string;
+}
+
 export interface ProtectedTopNRule {
   type: "protectedTopN";
   team: string;
@@ -38,15 +48,20 @@ export interface NoteOnlyRule {
   source?: string;
 }
 
-export type Round1Rule = UnconditionalRule | ProtectedTopNRule | SplitRecipientRule;
+export type Round1Rule = UnconditionalRule | MultiRecipientRule | ProtectedTopNRule | SplitRecipientRule;
 export type Round2Rule = UnconditionalRule | NoteOnlyRule;
+
+/** Joins a multiRecipient rule's two team names into the single string a
+ * pick's "team" field carries; TradedPickTeam splits on this to render both
+ * recipients' logos. */
+export const MULTI_RECIPIENT_SEPARATOR = "/";
 
 function appendNote(existing: string, addition: string): string {
   return existing ? `${existing} ${addition}` : addition;
 }
 
 function ruleSourceTeam(rule: Round1Rule | Round2Rule): string {
-  return rule.type === "unconditional" ? rule.from : rule.team;
+  return rule.type === "unconditional" || rule.type === "multiRecipient" ? rule.from : rule.team;
 }
 
 /**
@@ -64,6 +79,14 @@ export function applyRound1Overlay<T extends OverlayPick>(baseOrder: T[], rules:
 
     if (rule.type === "unconditional") {
       return { ...pick, team: rule.to, note: appendNote(pick.note, `(via ${rule.from})`) };
+    }
+
+    if (rule.type === "multiRecipient") {
+      return {
+        ...pick,
+        team: rule.to.join(MULTI_RECIPIENT_SEPARATOR),
+        note: appendNote(pick.note, `(via ${rule.from})`),
+      };
     }
 
     if (rule.type === "protectedTopN") {
