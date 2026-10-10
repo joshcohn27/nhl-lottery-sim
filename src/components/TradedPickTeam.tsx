@@ -21,7 +21,7 @@ export function TradedPickTeam({ team, note }: { team: string; note: string }) {
   if (!viaMatch) {
     return (
       <span className="team-cell">
-        <TeamLogo teamName={team} size={22} />
+        <TeamLogo teamName={team} size={18} />
         <span>{team}</span>
       </span>
     );
@@ -32,7 +32,7 @@ export function TradedPickTeam({ team, note }: { team: string; note: string }) {
 
   return (
     <span className="team-cell" title={note}>
-      <TeamLogo teamName={originalTeam} size={22} />
+      <TeamLogo teamName={originalTeam} size={18} />
       <span>{originalTeam}</span>
       <span className="trade-arrow" aria-hidden="true">
         &#8635;
@@ -41,7 +41,7 @@ export function TradedPickTeam({ team, note }: { team: string; note: string }) {
         <span className="trade-recipient-group" key={recipient}>
           {idx > 0 && <span className="trade-recipient-sep">/</span>}
           <span className="trade-recipient">{abbrevForTeamName(recipient) ?? recipient}</span>
-          <TeamLogo teamName={recipient} size={18} />
+          <TeamLogo teamName={recipient} size={15} />
         </span>
       ))}
     </span>

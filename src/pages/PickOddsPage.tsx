@@ -84,7 +84,7 @@ export default function PickOddsPage() {
                     <td>{idx + 1}</td>
                     <td>
                       <span className="team-cell">
-                        <TeamLogo teamName={team.name} size={22} />
+                        <TeamLogo teamName={team.name} size={18} />
                         <span>{team.name}</span>
                       </span>
                     </td>
