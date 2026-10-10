@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   DRAFT_YEAR,
   LOTTERY_COMBOS_BY_SLOT,
@@ -162,6 +163,7 @@ function BallSlot({ idx }: { idx: number }) {
 }
 
 export default function LotteryPage() {
+  const { pathname } = useLocation();
   const pickLockRef = useRef(false);
 
   // useEffect(() => {
@@ -1281,6 +1283,7 @@ export default function LotteryPage() {
   // + status line above it just pushes the board and prospect panel down
   // the page for no benefit, forcing a scroll before you can even draft.
   const showFullHeader = !(lottoPhase === "draft" && roundsSelected);
+  const cameForMockDraft = pathname === "/draft" && lottoPhase === "lottery";
 
   return (
     <div className="container">
@@ -1288,14 +1291,18 @@ export default function LotteryPage() {
         <>
           <div className="page-title-frame">
             <h1 className="page-title">
-              {lottoPhase === "draft" ? `${DRAFT_YEAR} Mock Draft` : `${DRAFT_YEAR} Draft Lottery Simulator`}
+              {lottoPhase === "draft" || cameForMockDraft
+                ? `${DRAFT_YEAR} Mock Draft`
+                : `${DRAFT_YEAR} Draft Lottery Simulator`}
             </h1>
           </div>
 
           <p className="lottery-page-sub">
             {lottoPhase === "draft"
               ? `Build your ${DRAFT_YEAR} NHL first-round mock draft.`
-              : `Simulate the ${DRAFT_YEAR} NHL Draft Lottery and build a full first-round mock draft.`}
+              : cameForMockDraft
+                ? `The mock draft starts from the lottery result, so the lottery comes first.`
+                : `Sim the ${DRAFT_YEAR} NHL Draft Lottery, then run your own mock draft!`}
           </p>
           <p className="status-line">
             {standingsFile?.provisional
@@ -1311,6 +1318,15 @@ export default function LotteryPage() {
 
       {lottoPhase === "lottery" && (
         <>
+          {cameForMockDraft && (
+            <div className="draft-prereq-note">
+              <strong>Step 1: set the draft order.</strong>{" "}
+              {lottoDone
+                ? "The lottery is done. Hit Start Mock Draft below to begin picking."
+                : "Hit Sim Lottery to run it instantly, or Draw Ball to draw it yourself. Start Mock Draft appears once both drawings are done."}
+            </div>
+          )}
+
           <div className="lottery-machine">
             <div className="lottery-machine-title">Lottery Draw</div>
             <div className="lottery-machine-phase">

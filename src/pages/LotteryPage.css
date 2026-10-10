@@ -406,3 +406,20 @@
     gap: 4px;
   }
 }
+
+/* Shown when someone lands on /draft before the lottery has been run. */
+.draft-prereq-note {
+  max-width: 620px;
+  margin: 0 auto var(--space-4);
+  background: var(--color-purple-tint);
+  border: 1px solid var(--color-purple);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-base);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.draft-prereq-note strong {
+  color: var(--color-purple);
+}
