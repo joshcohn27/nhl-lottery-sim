@@ -12,6 +12,7 @@ import {
 import { getLotteryPool, isSeasonComplete, type TeamStanding } from "../lib/standings";
 import { resolvePlayoffPickOrder, type PlayoffResults } from "../lib/playoffDraftOrder";
 import {
+  MULTI_RECIPIENT_SEPARATOR,
   applyRound1Overlay,
   applyRound2Overlay,
   type Round1Rule,
@@ -912,10 +913,18 @@ export default function LotteryPage() {
   const saveDraft = useCallback(() => {
     const origin = window.location.origin;
     const logoTag = (teamName: string) => {
-      const abbrev = abbrevForTeamName(teamName.replace(/\s*\(.*\)\s*$/, ""));
-      return abbrev
-        ? `<img class="logo" src="${origin}/logos/${abbrev}.svg" alt="" />`
-        : `<span class="logo-chip"></span>`;
+      const abbrevs = teamName
+        .replace(/\s*\(.*\)\s*$/, "")
+        .split(MULTI_RECIPIENT_SEPARATOR)
+        .map((name) => abbrevForTeamName(name));
+
+      if (abbrevs.some((abbrev) => !abbrev)) return `<span class="logo-chip"></span>`;
+      if (abbrevs.length === 1) return `<img class="logo" src="${origin}/logos/${abbrevs[0]}.svg" alt="" />`;
+
+      // A pick split between two teams: both logos, stacked in the one cell.
+      return `<span class="logo-pair">${abbrevs
+        .map((abbrev) => `<img src="${origin}/logos/${abbrev}.svg" alt="" />`)
+        .join("")}</span>`;
     };
 
     const renderRow = (pickNum: number, team: string, note: string, player: Prospect | null, forfeited?: boolean) => {
@@ -933,14 +942,12 @@ export default function LotteryPage() {
       const playerLabel = player ? `${player.name} (${formatProspectMeta(player)})` : "-";
 
       return `
-        <div class="pick-row">
+        <div class="pick-row${note ? " has-note" : ""}">
           <div class="pick-number">${escapeHtml(pickNum)}</div>
           ${logoTag(team)}
-          <div class="team-name">
-            ${escapeHtml(team)}
-            ${note ? `<div class="pick-note">${escapeHtml(note)}</div>` : ""}
-          </div>
+          <div class="team-name">${escapeHtml(team)}</div>
           <div class="player-name">${escapeHtml(playerLabel)}</div>
+          ${note ? `<div class="pick-note">${escapeHtml(note)}</div>` : ""}
         </div>
       `;
     };
@@ -959,6 +966,9 @@ export default function LotteryPage() {
   <style>
     * { box-sizing: border-box; }
 
+    /* Each round is laid out as exactly one Letter page: the page box has a
+       fixed height (11in minus the margins, less a hair so rounding can never
+       spill onto an extra sheet) and its rows share that height equally. */
     @page { size: letter portrait; margin: 0.3in; }
 
     html, body {
@@ -966,6 +976,26 @@ export default function LotteryPage() {
       background: #fff;
       color: #333;
       font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      width: 7.9in;
+      margin: 0 auto;
+    }
+
+    .round-page {
+      height: 10.3in;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      break-inside: avoid;
+      break-after: page;
+    }
+
+    .round-page:last-of-type {
+      break-after: auto;
     }
 
     h1 {
@@ -979,7 +1009,7 @@ export default function LotteryPage() {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin: 4px 0 14px;
+      margin: 0 0 6px;
     }
 
     .rule-frame::before,
@@ -994,24 +1024,35 @@ export default function LotteryPage() {
       text-align: center;
       color: #6b6b75;
       font-size: 11px;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
     .pick-list {
-      break-inside: avoid;
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
     }
 
     .pick-row {
       display: grid;
       grid-template-columns: 26px 22px 1fr 1.3fr;
-      gap: 8px;
+      column-gap: 8px;
       align-items: center;
-      padding: 5px 4px;
+      align-content: center;
+      padding: 0 4px;
       border-bottom: 1px solid #e3e3e8;
-      break-inside: avoid;
-      page-break-inside: avoid;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .has-note .pick-number,
+    .has-note .logo,
+    .has-note .logo-pair,
+    .has-note .logo-chip {
+      grid-row: 1 / span 2;
     }
 
     .pick-number {
@@ -1027,26 +1068,48 @@ export default function LotteryPage() {
       height: 20px;
     }
 
+    .logo-pair {
+      display: grid;
+      width: 20px;
+      height: 22px;
+    }
+
+    .logo-pair img {
+      width: 20px;
+      height: 11px;
+    }
+
     .logo-chip {
       background: #6b6b75;
       border-radius: 50%;
       display: inline-block;
     }
 
+    .team-name,
+    .player-name,
+    .pick-note {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
     .team-name {
       font-weight: 700;
       font-size: 11px;
-      line-height: 1.2;
     }
 
     .team-name.muted {
       color: #6b6b75;
     }
 
+    /* On its own line across the team and player columns, so even the
+       longest conditional-pick note fits without wrapping. */
     .pick-note {
-      font-weight: 400;
+      grid-column: 3 / -1;
+      grid-row: 2;
       color: #6b6b75;
-      font-size: 8.5px;
+      font-size: 8px;
     }
 
     .player-name {
@@ -1059,17 +1122,9 @@ export default function LotteryPage() {
       font-style: italic;
     }
 
-    .round-page {
-      break-before: page;
-    }
-
-    .round-page:first-of-type {
-      break-before: auto;
-    }
-
     .print-actions {
       text-align: center;
-      margin-top: 16px;
+      margin: 16px 0;
     }
 
     .print-actions button {
@@ -1086,15 +1141,20 @@ export default function LotteryPage() {
     }
 
     @media print {
+      body { width: auto; }
       .print-actions { display: none; }
     }
   </style>
 </head>
 <body>
+  <div class="print-actions">
+    <button onclick="window.print()">Print / Save PDF</button>
+  </div>
+
   <div class="round-page">
     <div class="rule-frame"><h1>${DRAFT_YEAR} NHL Mock Draft</h1></div>
     <div class="subtitle">Round 1 &middot; Picks 1-32</div>
-    <div class="pick-list">${round1Rows}</div>
+    <div class="pick-list" style="--rows: ${Math.max(draftPicks.length, 1)}">${round1Rows}</div>
   </div>
 
   ${
@@ -1103,15 +1163,11 @@ export default function LotteryPage() {
     <div class="round-page">
       <div class="rule-frame"><h1>${DRAFT_YEAR} NHL Mock Draft</h1></div>
       <div class="subtitle">Round 2 &middot; Picks 33-64</div>
-      <div class="pick-list">${round2Rows}</div>
+      <div class="pick-list" style="--rows: ${Math.max(round2Picks.length, 1)}">${round2Rows}</div>
     </div>
   `
       : ""
   }
-
-  <div class="print-actions">
-    <button onclick="window.print()">Print / Save PDF</button>
-  </div>
 </body>
 </html>`;
 
