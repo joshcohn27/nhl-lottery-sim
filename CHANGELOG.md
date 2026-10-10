@@ -13,6 +13,10 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.6.0 - 2026-10-09
+- Footer: "Contact support" link that opens an X direct message to the site's
+  account.
+
 ## 2.5.1 - 2026-10-09
 - Printable draft (Save Draft): each round now fits on exactly one Letter
   page, with long pick notes on their own line instead of wrapping.
