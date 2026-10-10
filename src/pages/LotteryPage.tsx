@@ -33,6 +33,7 @@ import {
   resolveCombo,
   getAliveSlots,
   getPossibleFourthBallsBySlot,
+  buildLotteryPickByTeam,
   buildLotterySlots,
   type LotteryAssignment,
   type LotteryComboRow,
@@ -671,21 +672,40 @@ export default function LotteryPage() {
     [lotteryTeams, nonLotteryTeams, pickTrades]
   );
 
-  // The current round-1 order with trades applied, reactive to the lottery
-  // draw as it happens (starts from the plain projected order with
-  // assignments=[] before any balls are drawn). Used so the standings table
-  // shows the same trade-arrow treatment as the Full Order page, instead of
-  // the raw pre-trade team name.
-  const liveRound1Order = useMemo(
-    () => buildOrderFromLotteryAssignments(lotteryAssignments),
-    [buildOrderFromLotteryAssignments, lotteryAssignments]
-  );
+  // Each team's own pick as the lottery currently stands (its standings slot
+  // until a drawing moves it), keyed by the team the standings row belongs
+  // to. Rows must be looked up by team, never by row position: after a
+  // drawing, pick N is usually held by a different team than the one that
+  // finished Nth, and that row's record and odds belong to the latter.
+  const currentPickByTeam = useMemo(() => {
+    const pickByTeam = buildLotteryPickByTeam(
+      lotteryAssignments,
+      lotteryTeams.map((t) => t.name)
+    );
+    nonLotteryTeams.forEach((team) => pickByTeam.set(team.name, team.pick));
+    return pickByTeam;
+  }, [lotteryAssignments, lotteryTeams, nonLotteryTeams]);
 
-  const round1ByPick = useMemo(() => {
-    const map = new Map<number, DraftPick>();
-    liveRound1Order.forEach((pick) => map.set(pick.pick, pick));
-    return map;
-  }, [liveRound1Order]);
+  // The same trade-arrow treatment as the Full Order page, per team.
+  const round1PickByOriginalTeam = useMemo(() => {
+    const base = [...lotteryTeams, ...nonLotteryTeams].map((team) => ({
+      team: team.name,
+      pick: currentPickByTeam.get(team.name) ?? team.pick,
+      note: "",
+    }));
+    const withOverlay = pickTrades ? applyRound1Overlay(base, pickTrades.round1) : base;
+
+    return new Map(base.map((pick, idx) => [pick.team, withOverlay[idx]]));
+  }, [currentPickByTeam, lotteryTeams, nonLotteryTeams, pickTrades]);
+
+  // Standings order while the lottery is in progress; final draft order once
+  // both drawings are done.
+  const displayedLotteryTeams = useMemo(() => {
+    if (!lottoDone) return lotteryTeams;
+    return [...lotteryTeams].sort(
+      (a, b) => (currentPickByTeam.get(a.name) ?? a.pick) - (currentPickByTeam.get(b.name) ?? b.pick)
+    );
+  }, [currentPickByTeam, lotteryTeams, lottoDone]);
 
   const finalizeLottery = useCallback(
     (assignments: LotteryAssignment[]) => {
@@ -1181,8 +1201,8 @@ export default function LotteryPage() {
     </tr>
   );
 
-  function PickTeamCell({ team }: { team: { name: string; pick: number } }) {
-    const overlayPick = round1ByPick.get(team.pick);
+  function PickTeamCell({ team }: { team: { name: string } }) {
+    const overlayPick = round1PickByOriginalTeam.get(team.name);
     const displayTeam = overlayPick?.team ?? team.name;
     const displayNote = overlayPick?.note ?? "";
     // Only show the "*" heads-up when the condition exists but hasn't
@@ -1204,7 +1224,7 @@ export default function LotteryPage() {
     return <TradedPickTeam team={displayTeam} note={displayNote} />;
   }
 
-  function LotteryTeamRow({ team, idx }: { team: (typeof lotteryTeams)[number]; idx: number }) {
+  function LotteryTeamRow({ team }: { team: (typeof lotteryTeams)[number] }) {
     const isP1 = pick1Winner === team.name;
     const isP2 = pick2Winner === team.name;
     const won = isP1 || isP2;
@@ -1212,26 +1232,26 @@ export default function LotteryPage() {
     const isAlive = ballsDrawn > 0 && ballsDrawn < 4 && aliveTeams.has(team.name);
     const isEliminated = ballsDrawn > 0 && ballsDrawn < 4 && !aliveTeams.has(team.name) && !lottoDone;
     const fourthBalls = possibleFourthBallsByTeam[team.name] ?? [];
-    const assignedLotteryPick = lottoDone
-      ? Number(
-          Object.entries(buildLotterySlots(lotteryAssignments, lotteryTeams.map((t) => t.name))).find(
-            ([, slotTeam]) => slotTeam === team.name
-          )?.[0] ?? idx + 1
-        )
-      : idx + 1;
+    const standingsSlot = team.pick;
+    const finalPick = currentPickByTeam.get(team.name) ?? standingsSlot;
+    const movement = standingsSlot - finalPick;
 
     return (
       <tr key={team.abbrev} className={isAlive ? "lottery-row-alive" : isEliminated ? "lottery-row-eliminated" : ""}>
-        <td>{idx + 1}</td>
+        <td>{lottoDone ? finalPick : standingsSlot}</td>
         <td>
           <span className="team-cell lottery-team-cell">
             <PickTeamCell team={team} />
             {isAlive && !lottoDone && <span className="pill pill-alive">Alive</span>}
             {isEliminated && <span className="pill pill-out">Out</span>}
             {won && lottoDone && (
-              <span className="pill pill-won">Pick {isP1 ? pick1AwardedSlot ?? 1 : pick2AwardedSlot ?? 2}</span>
+              <span className="pill pill-won">Won pick {isP1 ? pick1AwardedSlot ?? 1 : pick2AwardedSlot ?? 2}</span>
             )}
-            {!won && lottoDone && <span className="pill">{assignedLotteryPick}</span>}
+            {lottoDone && movement !== 0 && (
+              <span className={movement > 0 ? "pill pill-alive" : "pill pill-out"}>
+                {movement > 0 ? `Up ${movement}` : `Down ${-movement}`}
+              </span>
+            )}
             {fourthBalls.length > 0 && (
               <span className="fourth-ball-row">
                 {fourthBalls.map((ball) => (
@@ -1399,8 +1419,8 @@ export default function LotteryPage() {
             <table className="stat-table">
               <thead>{statHeaderRow}</thead>
               <tbody>
-                {lotteryTeams.map((team, idx) => (
-                  <LotteryTeamRow key={team.abbrev} team={team} idx={idx} />
+                {displayedLotteryTeams.map((team) => (
+                  <LotteryTeamRow key={team.abbrev} team={team} />
                 ))}
                 <tr className="end-of-lottery-row">
                   <td colSpan={11}>End of Lottery</td>

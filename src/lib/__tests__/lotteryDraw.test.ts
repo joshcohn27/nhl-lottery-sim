@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyLotteryDrawAssignment,
+  buildLotteryPickByTeam,
   buildLotterySlots,
   didLotteryMoveImprovePick,
   getAwardedPick,
@@ -115,5 +116,25 @@ describe("buildLotterySlots + applyLotteryDrawAssignment", () => {
 
     expect(defaultLockedTeam).toBeNull();
     expect(assignments).toEqual([{ team: "C", pick: 1, source: "draw" }]);
+  });
+});
+
+describe("buildLotteryPickByTeam", () => {
+  const teams = ["A", "B", "C", "D", "E"];
+
+  it("gives every team its own standings slot before any drawing", () => {
+    expect([...buildLotteryPickByTeam([], teams)]).toEqual([["A", 1], ["B", 2], ["C", 3], ["D", 4], ["E", 5]]);
+  });
+
+  it("maps each team to the pick it holds after a drawing, not to the team that held that slot before (regression: the standings table showed the new holder of pick N next to the record of the team that finished Nth)", () => {
+    const assignments: LotteryAssignment[] = [{ team: "D", pick: 1, source: "draw" }];
+    const pickByTeam = buildLotteryPickByTeam(assignments, teams);
+
+    expect(pickByTeam.get("D")).toBe(1);
+    expect(pickByTeam.get("A")).toBe(2);
+    expect(pickByTeam.get("B")).toBe(3);
+    expect(pickByTeam.get("C")).toBe(4);
+    expect(pickByTeam.get("E")).toBe(5);
+    expect(new Set(pickByTeam.values()).size).toBe(teams.length);
   });
 });

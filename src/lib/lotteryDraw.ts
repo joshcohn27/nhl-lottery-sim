@@ -169,6 +169,20 @@ export function buildLotterySlots(
   return slots;
 }
 
+/** Each lottery team's current pick number - the inverse of buildLotterySlots. */
+export function buildLotteryPickByTeam(
+  assignments: LotteryAssignment[],
+  lotteryTeamNames: string[]
+): Map<string, number> {
+  const pickByTeam = new Map<string, number>();
+
+  for (const [pick, team] of Object.entries(buildLotterySlots(assignments, lotteryTeamNames))) {
+    pickByTeam.set(team, Number(pick));
+  }
+
+  return pickByTeam;
+}
+
 export function getNextOpenLotteryPick(assignments: LotteryAssignment[], lotteryTeamCount: number): number {
   const occupiedPicks = getOccupiedPicks(assignments);
 
