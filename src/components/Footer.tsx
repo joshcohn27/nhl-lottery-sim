@@ -13,6 +13,7 @@ export function Footer() {
           </a>
           .
         </div>
+        <div className="site-version">v{__APP_VERSION__}</div>
       </div>
     </footer>
   );

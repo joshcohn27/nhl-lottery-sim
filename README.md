@@ -60,6 +60,13 @@ The updater never overwrites a good `standings.json` with a bad one - on any
 fetch failure, unexpected season, or implausible result, it leaves the
 existing file alone.
 
+## Versioning
+
+The version in `package.json` is shown in the site footer. Every code, logic,
+or styling change bumps it and adds an entry to [CHANGELOG.md](CHANGELOG.md);
+automated standings updates do not. Bump with
+`npm version <x.y.z> --no-git-tag-version`.
+
 ## Development
 
 ```sh
