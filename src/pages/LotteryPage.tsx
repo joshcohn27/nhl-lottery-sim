@@ -369,6 +369,10 @@ export default function LotteryPage() {
     [lotteryHistory]
   );
 
+  const teamsAtWinLimit = advanceHistory
+    .filter((h) => lotteryHistory !== null && h.wins >= lotteryHistory.rule.maxWins)
+    .map((h) => h.team);
+
   const sortedDrawn = useMemo(() => [...drawnBalls].sort((a, b) => a - b), [drawnBalls]);
 
   const aliveTeams = useMemo(() => {
@@ -1394,11 +1398,13 @@ export default function LotteryPage() {
 
           {advanceHistory.length > 0 && (
             <div className="advance-history-note">
-              Under NHL rules, a team can win a lottery drawing (jump up in the draft order) at most twice within any
-              five-year span. In the {DRAFT_YEAR - 4}-{DRAFT_YEAR - 1} window counting into this year's lottery,{" "}
-              {advanceHistory.map((h) => `${h.team} (${h.wins} win${h.wins === 1 ? "" : "s"})`).join(", ")} already{" "}
-              {advanceHistory.length === 1 ? "has" : "have"} one. Winning again this year would hit that limit, so
-              that team would be capped at its current slot instead of jumping further up.
+              Under NHL rules, a team can move up in the draft order by winning a lottery drawing at most twice in
+              any five-year span. Wins that count toward this year's lottery ({DRAFT_YEAR - 4}-{DRAFT_YEAR - 1}):{" "}
+              {advanceHistory.map((h) => `${h.team} (${h.wins})`).join(", ")}. A team with one win can still move up
+              this year.{" "}
+              {teamsAtWinLimit.length > 0
+                ? `${teamsAtWinLimit.join(", ")} already ${teamsAtWinLimit.length === 1 ? "has" : "have"} two, so a drawing won by ${teamsAtWinLimit.length === 1 ? "that team" : "one of those teams"} is redrawn.`
+                : "No team has two yet, so every lottery team is eligible."}
             </div>
           )}
         </>
