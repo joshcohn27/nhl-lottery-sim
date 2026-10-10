@@ -2,7 +2,7 @@
 
 A fan-made simulator for the 2027 NHL Draft Lottery and first-round (and
 second-round) mock draft, built with React 19, TypeScript, and Vite. Live at
-[nhlmock.joshbcohn.com](https://nhlmock.joshbcohn.com).
+[hockeylotto.com](https://hockeylotto.com).
 
 Unofficial fan project. Not affiliated with or endorsed by the NHL or any
 club. Team names and logos are trademarks of their respective owners.
