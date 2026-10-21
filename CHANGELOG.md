@@ -13,6 +13,11 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.10.3 - 2026-10-20
+- Copy Results lists only picks that have been made, and includes round 2
+  only in a two-round mock (it used to list every undrafted pick, including
+  round 2 in a one-round mock).
+
 ## 2.10.2 - 2026-10-20
 - Draft strip uses first initial and last name ("C - A. Joseph") so names
   fit; full names stay in the results and team panel.

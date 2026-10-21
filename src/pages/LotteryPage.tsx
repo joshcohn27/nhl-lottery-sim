@@ -899,16 +899,22 @@ export default function LotteryPage() {
   }, [safelyAssignPicks]);
 
   const copyResults = useCallback(() => {
-    const r1lines = draftPicks.map((p) => `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "-"}`).join("\n");
-    const r2lines = round2Picks.length > 0
-      ? "\n\nRound 2\n\n" + round2Picks.map((p) => p.forfeited ? `${p.pick}. FORFEITED (${p.note})` : `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player ? `${p.player.name} (${formatProspectMeta(p.player)})` : "-"}`).join("\n")
-      : "";
+    // Only picks that have actually been made, and round 2 only when this
+    // mock includes it - round2Picks always exists, even in a 1-round mock.
+    const line = (p: { pick: number; team: string; note: string; player: Prospect }) =>
+      `${p.pick}. ${p.team}${p.note ? " " + p.note : ""}: ${p.player.name} (${formatProspectMeta(p.player)})`;
+    const made = <T extends { player: Prospect | null }>(picks: T[]) =>
+      picks.filter((p): p is T & { player: Prospect } => p.player !== null);
+
+    const r1lines = made(draftPicks).map(line).join("\n");
+    const r2made = mockRounds === 2 ? made(round2Picks.filter((p) => !p.forfeited)) : [];
+    const r2lines = r2made.length > 0 ? "\n\nRound 2\n\n" + r2made.map(line).join("\n") : "";
 
     navigator.clipboard.writeText(`${DRAFT_YEAR} NHL Mock Draft - Round 1\n\n${r1lines}${r2lines}`).then(() => {
       setCopyLabel("Copied!");
       setTimeout(() => setCopyLabel("Copy Results"), 2000);
     });
-  }, [draftPicks, round2Picks]);
+  }, [draftPicks, mockRounds, round2Picks]);
 
   const saveDraft = useCallback(() => {
     const origin = window.location.origin;
