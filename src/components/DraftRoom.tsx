@@ -107,6 +107,13 @@ function draftedLabel(player: Prospect): string {
   return `${player.pos} - ${player.name}`;
 }
 
+/** Short form for the narrow draft-order strip: "C - A. Joseph". */
+function draftedShortLabel(player: Prospect): string {
+  const [first, ...rest] = player.name.split(" ");
+  const short = rest.length > 0 ? `${first[0]}. ${rest.join(" ")}` : player.name;
+  return `${player.pos} - ${short}`;
+}
+
 function viaTeam(note: string): string | undefined {
   return note.match(/^\(via ([^,)]+)/)?.[1];
 }
@@ -182,7 +189,7 @@ export function DraftRoom(props: DraftRoomProps) {
                 )}
               </div>
               <div className="dr-cell-player">
-                {onClock ? "On the clock" : pick.player ? draftedLabel(pick.player) : "—"}
+                {onClock ? "On the clock" : pick.player ? draftedShortLabel(pick.player) : "—"}
               </div>
             </div>
           );

@@ -13,6 +13,10 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.10.2 - 2026-10-20
+- Draft strip uses first initial and last name ("C - A. Joseph") so names
+  fit; full names stay in the results and team panel.
+
 ## 2.10.1 - 2026-10-20
 - Drafted players show their position first, e.g. "C - Alexis Joseph", in
   the draft strip, round results and team panel. Strip cells are a little
