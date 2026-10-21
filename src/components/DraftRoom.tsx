@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { TeamLogo } from "./TeamLogo";
 import { abbrevForTeamName } from "../lib/teams";
 import { MULTI_RECIPIENT_SEPARATOR } from "../lib/pickTrades";
@@ -16,7 +16,8 @@ export interface DraftRoomPick {
 /**
  * Layout for one round of the mock draft. Purely presentational: every
  * decision (who is on the clock, what each button does, when controls are
- * disabled) is made by the caller and passed in unchanged.
+ * disabled) is made by the caller and passed in unchanged. The only state
+ * kept here is display preference: favorites and the board filters.
  */
 interface DraftRoomProps {
   title: string;
@@ -28,23 +29,57 @@ interface DraftRoomProps {
   completeTitle: string;
   completeText: string;
   teamPicks: DraftRoomPick[];
+  /** Prospects still available that match the search and position filter. */
   prospects: Prospect[];
-  selectedProspect: Prospect | null;
-  onSelectProspect: (prospect: Prospect) => void;
+  /** Every prospect that matches the search and position filter, drafted or not. */
+  matchingProspects: Prospect[];
+  /** Who took each drafted prospect, by prospect rank. */
+  draftedBy: Map<number, { pick: number; team: string }>;
   search: string;
   onSearchChange: (value: string) => void;
   positionFilter: ProspectPositionFilter;
   onPositionFilterChange: (value: ProspectPositionFilter) => void;
   controlsDisabled: boolean;
-  onDraft: () => void;
+  onDraftProspect: (prospect: Prospect) => void;
   draftDisabled: boolean;
-  draftLabel: string;
-  onAutoNext: () => void;
-  autoNextDisabled: boolean;
   /** False while a team the user isn't controlling is on the clock. */
   isUserPick: boolean;
   /** Seconds left on the pick timer, or null when there's no timer running. */
   clockSecondsLeft: number | null;
+}
+
+// Saved by name, not rank: rankings get reordered, and a saved rank would
+// silently point at a different player.
+const FAVORITES_STORAGE_KEY = "nhl-mock-favorites";
+
+function loadFavorites(): Set<string> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) ?? "[]");
+    return new Set(Array.isArray(parsed) ? parsed.filter((n) => typeof n === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Favorited prospects, remembered in this browser across rounds and visits. */
+function useFavorites() {
+  const [favorites, setFavorites] = useState<Set<string>>(loadFavorites);
+
+  const toggle = (name: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...next]));
+      } catch {
+        // Storage unavailable (private mode etc.): favorites last for this visit only.
+      }
+      return next;
+    });
+  };
+
+  return { favorites, toggle };
 }
 
 function formatClock(seconds: number): string {
@@ -75,6 +110,9 @@ export function DraftRoom(props: DraftRoomProps) {
   const { picks, isOnClock, onClockPick, isComplete } = props;
   const stripRef = useRef<HTMLDivElement>(null);
   const onClockIdx = picks.findIndex((_, idx) => isOnClock(idx));
+  const { favorites, toggle: toggleFavorite } = useFavorites();
+  const [showDrafted, setShowDrafted] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   // Scroll the draft-order strip so the most recent pick sits fully at the
   // left edge, with the pick on the clock right after it.
@@ -88,6 +126,15 @@ export function DraftRoom(props: DraftRoomProps) {
   }, [onClockIdx]);
 
   const onClockVia = onClockPick ? viaTeam(onClockPick.note) : undefined;
+
+  // "Drafted" adds already-taken players back into the list; "Favorites"
+  // narrows to starred players. Both can be on at once.
+  const boardProspects = (showDrafted ? props.matchingProspects : props.prospects).filter(
+    (prospect) => !favoritesOnly || favorites.has(prospect.name)
+  );
+
+  const draftedTeamPicks = props.teamPicks.filter((pick) => pick.player);
+  const upcomingTeamPicks = props.teamPicks.filter((pick) => !pick.player);
 
   return (
     <div className="dr">
@@ -186,30 +233,58 @@ export function DraftRoom(props: DraftRoomProps) {
                 disabled={props.controlsDisabled}
               />
             </div>
-            <div className="dr-count">{props.prospects.length} available</div>
+            <div className="dr-toggles">
+              <button
+                type="button"
+                className={`dr-toggle${showDrafted ? " is-active" : ""}`}
+                aria-pressed={showDrafted}
+                onClick={() => setShowDrafted((on) => !on)}
+              >
+                Drafted
+              </button>
+              <button
+                type="button"
+                className={`dr-toggle${favoritesOnly ? " is-active" : ""}`}
+                aria-pressed={favoritesOnly}
+                onClick={() => setFavoritesOnly((on) => !on)}
+              >
+                <span aria-hidden="true">{favoritesOnly ? "★" : "☆"}</span> Favorites
+              </button>
+              <span className="dr-count">
+                {boardProspects.length} player{boardProspects.length === 1 ? "" : "s"}
+              </span>
+            </div>
             <ul className="dr-prospects">
-              {props.prospects.map((prospect) => {
-                const selected = props.selectedProspect?.rank === prospect.rank;
+              {boardProspects.map((prospect) => {
+                const drafted = props.draftedBy.get(prospect.rank);
+                const favorite = favorites.has(prospect.name);
                 return (
-                  <li
-                    key={prospect.rank}
-                    className={`dr-prospect${selected ? " is-selected" : ""}`}
-                    onClick={() => props.onSelectProspect(prospect)}
-                  >
+                  <li key={prospect.rank} className={`dr-prospect${drafted ? " is-drafted" : ""}`}>
                     <span className="dr-num">{prospect.rank}</span>
                     <span className="dr-prospect-name">
                       {prospect.name}
                       <span className="dr-prospect-meta">{formatProspectMeta(prospect)}</span>
                     </span>
-                    {selected && props.isUserPick && (
+                    <button
+                      type="button"
+                      className={`dr-star${favorite ? " is-on" : ""}`}
+                      aria-pressed={favorite}
+                      aria-label={favorite ? `Remove ${prospect.name} from favorites` : `Favorite ${prospect.name}`}
+                      title={favorite ? "Remove from favorites" : "Add to favorites"}
+                      onClick={() => toggleFavorite(prospect.name)}
+                    >
+                      {favorite ? "★" : "☆"}
+                    </button>
+                    {drafted ? (
+                      <span className="dr-drafted-by">
+                        Pick {drafted.pick} · {shortTeam(drafted.team)}
+                      </span>
+                    ) : (
                       <button
                         type="button"
-                        className="btn dr-inline-draft"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          props.onDraft();
-                        }}
-                        disabled={props.draftDisabled}
+                        className="btn dr-row-draft"
+                        onClick={() => props.onDraftProspect(prospect)}
+                        disabled={props.draftDisabled || !props.isUserPick}
                       >
                         Draft
                       </button>
@@ -217,6 +292,11 @@ export function DraftRoom(props: DraftRoomProps) {
                   </li>
                 );
               })}
+              {boardProspects.length === 0 && (
+                <li className="dr-empty">
+                  {favoritesOnly ? "No favorites here yet. Tap ☆ on a player to add one." : "No players match."}
+                </li>
+              )}
             </ul>
           </section>
 
@@ -231,45 +311,44 @@ export function DraftRoom(props: DraftRoomProps) {
                     {onClockVia ? ` · via ${onClockVia}` : ""}
                   </div>
                 </div>
+                {props.clockSecondsLeft !== null && (
+                  <div className={`dr-clock${props.clockSecondsLeft <= 10 ? " is-low" : ""}`} aria-live="polite">
+                    {formatClock(props.clockSecondsLeft)}
+                  </div>
+                )}
               </div>
             )}
-            {props.clockSecondsLeft !== null && (
-              <div className={`dr-clock${props.clockSecondsLeft <= 10 ? " is-low" : ""}`} aria-live="polite">
-                {formatClock(props.clockSecondsLeft)}
-              </div>
-            )}
-            {props.isUserPick ? (
-              <>
-                <button type="button" className="btn dr-wide" onClick={props.onDraft} disabled={props.draftDisabled}>
-                  {props.draftLabel}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline dr-wide"
-                  onClick={props.onAutoNext}
-                  disabled={props.autoNextDisabled}
-                >
-                  Auto-Pick Next
-                </button>
-              </>
+            {!props.isUserPick && <div className="dr-auto-note">Auto-picking for {onClockPick?.team}…</div>}
+
+            <div className="dr-side-label">Drafted</div>
+            {draftedTeamPicks.length > 0 ? (
+              <ul className="dr-team-picks">
+                {draftedTeamPicks.map((pick) => (
+                  <li key={pick.pick}>
+                    <span className="dr-num">{pick.pick}</span>
+                    <span>
+                      {pick.player?.name}
+                      <span className="dr-muted"> {pick.player?.pos}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <div className="dr-auto-note">Auto-picking for {onClockPick?.team}…</div>
+              <div className="dr-side-empty">No picks made yet.</div>
             )}
 
-            {props.teamPicks.length > 0 && (
-              <>
-                <div className="dr-side-label">{onClockPick?.team}'s picks</div>
-                <ul className="dr-team-picks">
-                  {props.teamPicks.map((pick) => (
-                    <li key={pick.pick} className={pick.pick === onClockPick?.pick ? "is-current" : ""}>
-                      <span className="dr-num">{pick.pick}</span>
-                      <span>
-                        {pick.player ? pick.player.name : pick.pick === onClockPick?.pick ? "On the clock" : "—"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
+            <div className="dr-side-label">Upcoming</div>
+            {upcomingTeamPicks.length > 0 ? (
+              <ul className="dr-team-picks">
+                {upcomingTeamPicks.map((pick) => (
+                  <li key={pick.pick} className={pick.pick === onClockPick?.pick ? "is-current" : ""}>
+                    <span className="dr-num">{pick.pick}</span>
+                    <span>{pick.pick === onClockPick?.pick ? "On the clock" : "—"}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="dr-side-empty">No more picks.</div>
             )}
           </aside>
         </div>

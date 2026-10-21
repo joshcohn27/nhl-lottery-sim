@@ -169,7 +169,6 @@ export default function LotteryPage() {
 
   const [draftPicks, setDraftPicks] = useState<DraftPick[]>([]);
   const [currentPickIdx, setCurrentPickIdx] = useState(0);
-  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [takenProspects, setTakenProspects] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [positionFilter, setPositionFilter] = useState<ProspectPositionFilter>("all");
@@ -426,7 +425,6 @@ export default function LotteryPage() {
         if (nextOpenPickIdx === -1) {
           setCurrentPickIdx(updated.length);
           setTakenProspects(latestTaken);
-          setSelectedProspect(null);
           pickLockRef.current = false;
           return updated;
         }
@@ -464,7 +462,6 @@ export default function LotteryPage() {
         const nextIdx = updated.findIndex((pick) => !pick.player);
         setCurrentPickIdx(nextIdx === -1 ? updated.length : nextIdx);
         setTakenProspects(latestTaken);
-        setSelectedProspect(null);
         pickLockRef.current = false;
         return updated;
       });
@@ -543,7 +540,6 @@ export default function LotteryPage() {
       if (nextOpenIdx === -1) {
         setRound2PickIdx(updated.length);
         setTakenProspects(latestTaken);
-        setSelectedProspect(null);
         pickLockRef.current = false;
         return;
       }
@@ -581,7 +577,6 @@ export default function LotteryPage() {
       const nextIdx = updated.findIndex((p) => !p.player && !p.forfeited);
       setRound2PickIdx(nextIdx === -1 ? updated.length : nextIdx);
       setTakenProspects(latestTaken);
-      setSelectedProspect(null);
       commitAssignments();
       pickLockRef.current = false;
     },
@@ -727,7 +722,6 @@ export default function LotteryPage() {
       setDraftPicks(order);
       setCurrentPickIdx(0);
       setTakenProspects(new Set());
-      setSelectedProspect(null);
       setLottoDone(true);
     },
     [buildOrderFromLotteryAssignments]
@@ -885,7 +879,6 @@ export default function LotteryPage() {
     setLottoPhase("lottery");
     setDraftPicks([]);
     setCurrentPickIdx(0);
-    setSelectedProspect(null);
     setTakenProspects(new Set());
     setSearch("");
     setPositionFilter("all");
@@ -896,10 +889,6 @@ export default function LotteryPage() {
     setCurrentRound(1);
     setRoundsSelected(false);
   }, []);
-
-  const makePick = useCallback(() => {
-    safelyAssignPicks("manual", selectedProspect);
-  }, [safelyAssignPicks, selectedProspect]);
 
   const autoPick = useCallback(() => {
     safelyAssignPicks("auto-next");
@@ -1395,7 +1384,7 @@ export default function LotteryPage() {
     return () => window.removeEventListener("message", onMessage);
   }, [saveViewHtml]);
 
-  const filteredProspects = prospects.filter((p) => {
+  const matchingProspects = prospects.filter((p) => {
     const searchLower = search.toLowerCase();
 
     const matchesSearch =
@@ -1404,7 +1393,14 @@ export default function LotteryPage() {
       p.league.toLowerCase().includes(searchLower) ||
       (p.team ?? "").toLowerCase().includes(searchLower);
 
-    return !takenProspects.has(p.rank) && matchesSearch && prospectMatchesPositionFilter(p, positionFilter);
+    return matchesSearch && prospectMatchesPositionFilter(p, positionFilter);
+  });
+
+  const filteredProspects = matchingProspects.filter((p) => !takenProspects.has(p.rank));
+
+  const draftedBy = new Map<number, { pick: number; team: string }>();
+  [...draftPicks, ...round2Picks].forEach((p) => {
+    if (p.player) draftedBy.set(p.player.rank, { pick: p.pick, team: p.team });
   });
 
   const comboRowTeamName = useCallback(
@@ -1739,6 +1735,9 @@ export default function LotteryPage() {
               <button className="btn btn-outline" onClick={() => setLottoPhase("lottery")}>
                 Back to Lottery
               </button>
+              <button className="btn btn-outline" onClick={autoPick} disabled={draftActionDisabled}>
+                Auto-Pick Next
+              </button>
               <button className="btn" onClick={autoPickAll} disabled={draftActionDisabled}>
                 Auto-Pick All
               </button>
@@ -1773,26 +1772,15 @@ export default function LotteryPage() {
             (p) => p.team === curPick?.team
           )}
           prospects={filteredProspects}
-          selectedProspect={selectedProspect}
-          onSelectProspect={(prospect) => {
-            if (!draftActionDisabled && !takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
-          }}
+          matchingProspects={matchingProspects}
+          draftedBy={draftedBy}
           search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setSelectedProspect(null);
-          }}
+          onSearchChange={setSearch}
           positionFilter={positionFilter}
-          onPositionFilterChange={(value) => {
-            setPositionFilter(value);
-            setSelectedProspect(null);
-          }}
+          onPositionFilterChange={setPositionFilter}
           controlsDisabled={draftActionDisabled}
-          onDraft={makePick}
-          draftDisabled={!selectedProspect || draftActionDisabled}
-          draftLabel={selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-          onAutoNext={autoPick}
-          autoNextDisabled={draftActionDisabled}
+          onDraftProspect={(prospect) => safelyAssignPicks("manual", prospect)}
+          draftDisabled={draftActionDisabled}
           isUserPick={userOnClock}
           clockSecondsLeft={clockSecondsLeft}
         />
@@ -1813,6 +1801,13 @@ export default function LotteryPage() {
             <>
               <button className="btn btn-outline" onClick={() => setCurrentRound(1)}>
                 Back to Round 1
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => safelyAssignRound2Picks("auto-next")}
+                disabled={round2Picks.every((p) => p.player || p.forfeited)}
+              >
+                Auto-Pick Next
               </button>
               <button
                 className="btn"
@@ -1836,26 +1831,15 @@ export default function LotteryPage() {
             (p) => p.team === round2Picks[round2PickIdx]?.team
           )}
           prospects={filteredProspects}
-          selectedProspect={selectedProspect}
-          onSelectProspect={(prospect) => {
-            if (!takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
-          }}
+          matchingProspects={matchingProspects}
+          draftedBy={draftedBy}
           search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setSelectedProspect(null);
-          }}
+          onSearchChange={setSearch}
           positionFilter={positionFilter}
-          onPositionFilterChange={(value) => {
-            setPositionFilter(value);
-            setSelectedProspect(null);
-          }}
+          onPositionFilterChange={setPositionFilter}
           controlsDisabled={false}
-          onDraft={() => safelyAssignRound2Picks("manual", selectedProspect)}
-          draftDisabled={!selectedProspect}
-          draftLabel={selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-          onAutoNext={() => safelyAssignRound2Picks("auto-next")}
-          autoNextDisabled={false}
+          onDraftProspect={(prospect) => safelyAssignRound2Picks("manual", prospect)}
+          draftDisabled={false}
           isUserPick={userOnClock}
           clockSecondsLeft={clockSecondsLeft}
         />

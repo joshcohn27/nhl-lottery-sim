@@ -208,11 +208,37 @@
   font-size: var(--font-size-sm);
 }
 
+.dr-toggles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.dr-toggle {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.dr-toggle.is-active {
+  border-color: var(--color-purple);
+  background: var(--color-purple-tint);
+  color: var(--color-purple);
+}
+
 .dr-count {
+  margin-left: auto;
+  padding-right: var(--space-3);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  padding-bottom: var(--space-1);
-  border-bottom: 1px solid var(--color-divider);
 }
 
 .dr-prospects {
@@ -230,16 +256,57 @@
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3) var(--space-2) var(--space-1);
   border-bottom: 1px solid var(--color-divider);
-  cursor: pointer;
 }
 
 .dr-prospect:hover {
   background: #faf9fc;
 }
 
-.dr-prospect.is-selected {
-  background: var(--color-purple-tint);
-  box-shadow: inset 3px 0 0 var(--color-purple);
+.dr-prospect.is-drafted .dr-num,
+.dr-prospect.is-drafted .dr-prospect-name {
+  color: var(--color-text-muted);
+}
+
+.dr-star {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  font-size: 20px;
+  line-height: 1;
+  color: #b9b9c2;
+  cursor: pointer;
+}
+
+.dr-star:hover {
+  color: var(--color-purple);
+}
+
+.dr-star.is-on {
+  color: var(--color-purple);
+}
+
+.dr-row-draft,
+.dr-drafted-by {
+  flex: 0 0 104px;
+  text-align: center;
+}
+
+.dr-row-draft {
+  padding: 6px var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.dr-drafted-by {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+.dr-empty {
+  padding: var(--space-6) var(--space-3);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .dr-prospect-name {
@@ -253,11 +320,6 @@
   font-weight: var(--font-weight-regular);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-}
-
-.dr-inline-draft {
-  padding: 6px var(--space-4);
-  font-size: var(--font-size-xs);
 }
 
 /* Team panel */
@@ -288,8 +350,14 @@
   font-size: var(--font-size-sm);
 }
 
-.dr-wide {
-  width: 100%;
+.dr-team .dr-clock {
+  margin-left: auto;
+}
+
+.dr-side-empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-2) 0;
 }
 
 .dr-side-label {
@@ -386,9 +454,22 @@
     border-bottom: 1px solid var(--color-divider);
   }
 
+  /* On phones the team panel is just the team and clock, so the board
+     stays near the top. */
   .dr-team-picks,
-  .dr-side-label {
+  .dr-side-label,
+  .dr-side-empty {
     display: none;
+  }
+
+  .dr-team {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .dr-row-draft,
+  .dr-drafted-by {
+    flex-basis: auto;
   }
 
   .dr-results {

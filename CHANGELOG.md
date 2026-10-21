@@ -13,6 +13,15 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.10.0 - 2026-10-20
+- Every prospect row has its own Draft button; players are no longer
+  selected first.
+- Star players as favorites (saved in the browser). Board toggles: Drafted
+  adds already-taken players back in with who took them, Favorites shows
+  only starred players; they can be combined.
+- The team panel now lists the on-the-clock team's drafted and upcoming
+  picks; Auto-Pick Next moved up next to Auto-Pick All.
+
 ## 2.9.3 - 2026-10-20
 - Start Draft button moved to the top of the draft settings screen.
 
