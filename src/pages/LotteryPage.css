@@ -316,6 +316,8 @@
   line-height: 1;
   color: #141414;
   padding-bottom: 2px;
-  border-bottom: 3px solid #141414;
+  /* Drawn as a background rather than a border: browsers round a 1.5px border
+     down to 1px. */
+  background: linear-gradient(#141414, #141414) bottom / 100% 1.5px no-repeat;
   letter-spacing: -0.02em;
 }

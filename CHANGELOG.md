@@ -13,6 +13,9 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.9.1 - 2026-10-20
+- Thinner underline on the lottery ball numbers.
+
 ## 2.9.0 - 2026-10-20
 - Draft settings screen: rounds, a pick timer (off by default, 60 seconds when
   on), and a team picker laid out one division per row. Teams you don't
