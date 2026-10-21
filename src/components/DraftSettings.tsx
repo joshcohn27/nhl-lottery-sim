@@ -86,7 +86,15 @@ export function DraftSettings(props: DraftSettingsProps) {
 
   return (
     <div className="ds">
-      <h2 className="ds-title">Draft settings</h2>
+      <div className="ds-head">
+        <h2 className="ds-title">Draft settings</h2>
+        <div className="ds-start">
+          {selectedCount === 0 && <span className="ds-hint">Select at least one team.</span>}
+          <button type="button" className="btn" onClick={props.onStart} disabled={selectedCount === 0}>
+            Start Draft
+          </button>
+        </div>
+      </div>
 
       <div className="ds-row">
         <div className="ds-label">Rounds</div>
@@ -175,12 +183,6 @@ export function DraftSettings(props: DraftSettingsProps) {
       </div>
       <div className="ds-summary">{selectionSummary}</div>
 
-      <div className="ds-start">
-        <button type="button" className="btn" onClick={props.onStart} disabled={selectedCount === 0}>
-          Start Draft
-        </button>
-        {selectedCount === 0 && <span className="ds-hint">Select at least one team.</span>}
-      </div>
     </div>
   );
 }

@@ -13,6 +13,9 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.9.3 - 2026-10-20
+- Start Draft button moved to the top of the draft settings screen.
+
 ## 2.9.2 - 2026-10-20
 - Pages, the draft settings screen and each draft round open at the top
   instead of at the previous scroll position.
