@@ -13,6 +13,18 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.9.0 - 2026-10-20
+- Draft settings screen: rounds, a pick timer (off by default, 60 seconds when
+  on), and a team picker laid out one division per row. Teams you don't
+  select pick automatically.
+- Auto-picks vary from run to run within limits: in round 1 no more than 5
+  spots past the best available and no deeper than the 3rd-best at a
+  position; round 2 allows 8 spots and the 4th-best, rarely. The top
+  prospect still goes 1st about 99.9% of the time.
+- Lottery balls restyled after the NHL's white ping pong balls.
+- Bolder page titles.
+- Alexis Joseph moved from 4th to 2nd in the prospect rankings.
+
 ## 2.8.0 - 2026-10-20
 - Mock draft redesign: draft-order strip across the top that follows the pick
   on the clock; prospect board with position tabs and search; on-the-clock

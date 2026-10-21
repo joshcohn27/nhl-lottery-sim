@@ -41,6 +41,14 @@ interface DraftRoomProps {
   draftLabel: string;
   onAutoNext: () => void;
   autoNextDisabled: boolean;
+  /** False while a team the user isn't controlling is on the clock. */
+  isUserPick: boolean;
+  /** Seconds left on the pick timer, or null when there's no timer running. */
+  clockSecondsLeft: number | null;
+}
+
+function formatClock(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 const POSITION_TABS: { value: ProspectPositionFilter; label: string }[] = [
@@ -194,7 +202,7 @@ export function DraftRoom(props: DraftRoomProps) {
                       {prospect.name}
                       <span className="dr-prospect-meta">{formatProspectMeta(prospect)}</span>
                     </span>
-                    {selected && (
+                    {selected && props.isUserPick && (
                       <button
                         type="button"
                         className="btn dr-inline-draft"
@@ -226,17 +234,28 @@ export function DraftRoom(props: DraftRoomProps) {
                 </div>
               </div>
             )}
-            <button type="button" className="btn dr-wide" onClick={props.onDraft} disabled={props.draftDisabled}>
-              {props.draftLabel}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline dr-wide"
-              onClick={props.onAutoNext}
-              disabled={props.autoNextDisabled}
-            >
-              Auto-Pick Next
-            </button>
+            {props.clockSecondsLeft !== null && (
+              <div className={`dr-clock${props.clockSecondsLeft <= 10 ? " is-low" : ""}`} aria-live="polite">
+                {formatClock(props.clockSecondsLeft)}
+              </div>
+            )}
+            {props.isUserPick ? (
+              <>
+                <button type="button" className="btn dr-wide" onClick={props.onDraft} disabled={props.draftDisabled}>
+                  {props.draftLabel}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline dr-wide"
+                  onClick={props.onAutoNext}
+                  disabled={props.autoNextDisabled}
+                >
+                  Auto-Pick Next
+                </button>
+              </>
+            ) : (
+              <div className="dr-auto-note">Auto-picking for {onClockPick?.team}…</div>
+            )}
 
             {props.teamPicks.length > 0 && (
               <>

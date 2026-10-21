@@ -41,6 +41,7 @@ import {
 } from "../lib/lotteryDraw";
 import { TradedPickTeam } from "../components/TradedPickTeam";
 import { DraftRoom } from "../components/DraftRoom";
+import { DraftSettings, type SettingsTeam } from "../components/DraftSettings";
 import { chooseAutoPick } from "../lib/autoPick";
 import { Tooltip } from "../components/Tooltip";
 import { abbrevForTeamName } from "../lib/teams";
@@ -89,22 +90,6 @@ const LOTTERY_HISTORY_JSON_PATH = "/data/lottery-history.json";
 const PLAYOFF_RESULTS_JSON_PATH = "/data/playoff-results.json";
 const GAMES_IN_SEASON = 84;
 
-const BALL_COLORS: [string, string][] = [
-  ["#c0392b", "#e74c3c"],
-  ["#d4ac0d", "#f1c40f"],
-  ["#1a5276", "#2980b9"],
-  ["#145a32", "#27ae60"],
-  ["#6c3483", "#8e44ad"],
-  ["#117a65", "#1abc9c"],
-  ["#7b241c", "#e74c3c"],
-  ["#784212", "#e67e22"],
-  ["#1c2833", "#566573"],
-  ["#0e6655", "#1abc9c"],
-  ["#4a235a", "#9b59b6"],
-  ["#78281f", "#cb4335"],
-  ["#154360", "#5dade2"],
-  ["#1e8449", "#58d68d"],
-];
 
 function escapeHtml(value: string | number | null | undefined): string {
   return String(value ?? "")
@@ -115,30 +100,12 @@ function escapeHtml(value: string | number | null | undefined): string {
     .replace(/'/g, "&#039;");
 }
 
+// Styled after the NHL's real lottery balls: white ping pong balls with a
+// bold black number, underlined so a 6 can't be mistaken for a 9.
 function DrawnBall({ n, isNew }: { n: number; isNew: boolean }) {
-  const [bg, light] = BALL_COLORS[n - 1] ?? ["#555", "#888"];
-
   return (
-    <div
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: "50%",
-        background: `radial-gradient(circle at 35% 30%, ${light}, ${bg})`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'Barlow Condensed', sans-serif",
-        fontSize: 28,
-        fontWeight: 900,
-        color: "#fff",
-        textShadow: "0 1px 3px rgba(0,0,0,.6)",
-        boxShadow: "0 8px 24px rgba(0,0,0,.45)",
-        flexShrink: 0,
-        animation: isNew ? "ballDrop .4s cubic-bezier(.22,.61,.36,1)" : "none",
-      }}
-    >
-      {n}
+    <div className="lotto-ball" style={{ animation: isNew ? "ballDrop .4s cubic-bezier(.22,.61,.36,1)" : "none" }}>
+      <span className="lotto-ball-number">{n}</span>
     </div>
   );
 }
@@ -150,13 +117,12 @@ function BallSlot({ idx }: { idx: number }) {
         width: 64,
         height: 64,
         borderRadius: "50%",
-        border: "2px dashed #2d3a50",
+        border: "2px dashed #b9b9c2",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "#2d3a50",
+        color: "#9a9aa5",
         fontSize: 13,
-        fontFamily: "'Barlow Condensed', sans-serif",
         fontWeight: 700,
         flexShrink: 0,
       }}
@@ -167,6 +133,8 @@ function BallSlot({ idx }: { idx: number }) {
 }
 
 const SAVE_VIEW_CLOSE_MESSAGE = "close-draft-save-view";
+/** Pause before a computer-controlled team makes its pick. */
+const CPU_PICK_DELAY_MS = 700;
 
 export default function LotteryPage() {
   const { pathname } = useLocation();
@@ -216,6 +184,11 @@ export default function LotteryPage() {
   const [mockRounds, setMockRounds] = useState<1 | 2>(1);
   const [roundsSelected, setRoundsSelected] = useState(false);
   const [currentRound, setCurrentRound] = useState<1 | 2>(1);
+  // null = the user controls every team (the default).
+  const [controlledTeams, setControlledTeams] = useState<string[] | null>(null);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(60);
+  const [clock, setClock] = useState<{ key: string; secondsLeft: number } | null>(null);
 
   useEffect(() => {
     fetch(COMBOS_CSV_PATH)
@@ -614,6 +587,68 @@ export default function LotteryPage() {
     },
     [draftPicks, prospects, round2Picks]
   );
+
+  // Whose pick it is right now, and whether the user is the one making it.
+  const activeRound = lottoPhase === "draft" && roundsSelected ? currentRound : null;
+  const round2Done = round2Picks.every((p) => p.player || p.forfeited);
+  const onClockTeam =
+    activeRound === 1
+      ? isDraftDone
+        ? undefined
+        : curPick?.team
+      : activeRound === 2 && !round2Done
+        ? round2Picks[round2PickIdx]?.team
+        : undefined;
+  const onClockKey = onClockTeam ? `${activeRound}-${activeRound === 1 ? currentPickIdx : round2PickIdx}` : null;
+  const userOnClock = !!onClockTeam && (controlledTeams === null || controlledTeams.includes(onClockTeam));
+
+  const autoPickOnClockRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    autoPickOnClockRef.current = () => {
+      if (activeRound === 1) safelyAssignPicks("auto-next");
+      else if (activeRound === 2) safelyAssignRound2Picks("auto-next");
+    };
+  });
+
+  // Teams the user isn't controlling pick on their own, after a short pause
+  // so each pick is visible as it happens.
+  useEffect(() => {
+    if (!onClockKey || userOnClock) return;
+    const timeout = setTimeout(() => autoPickOnClockRef.current(), CPU_PICK_DELAY_MS);
+    return () => clearTimeout(timeout);
+  }, [onClockKey, userOnClock]);
+
+  // Pick timer: restarts for each of the user's picks; at zero the pick is
+  // made automatically.
+  const clockSecondsLeft =
+    timerEnabled && userOnClock && onClockKey
+      ? clock?.key === onClockKey
+        ? clock.secondsLeft
+        : timerSeconds
+      : null;
+
+  useEffect(() => {
+    if (clockSecondsLeft === null || !onClockKey) return;
+    if (clockSecondsLeft <= 0) {
+      autoPickOnClockRef.current();
+      return;
+    }
+    const timeout = setTimeout(() => setClock({ key: onClockKey, secondsLeft: clockSecondsLeft - 1 }), 1000);
+    return () => clearTimeout(timeout);
+  }, [clockSecondsLeft, onClockKey]);
+
+  const settingsTeams = useMemo((): SettingsTeam[] => {
+    const owned = [...draftPicks, ...(mockRounds === 2 ? round2Picks.filter((p) => !p.forfeited) : [])];
+    return [...lotteryTeams, ...nonLotteryTeams].map((team) => {
+      const picks = owned.filter((p) => p.team === team.name).map((p) => p.pick);
+      return {
+        name: team.name,
+        divisionAbbrev: team.divisionAbbrev,
+        firstPick: picks.length > 0 ? Math.min(...picks) : null,
+        pickCount: picks.length,
+      };
+    });
+  }, [draftPicks, lotteryTeams, mockRounds, nonLotteryTeams, round2Picks]);
 
   const currentTargetPick = useMemo(
     () => getNextOpenLotteryPick(lotteryAssignments, lotteryTeams.length),
@@ -1664,31 +1699,21 @@ export default function LotteryPage() {
       )}
 
       {lottoPhase === "draft" && !roundsSelected && (
-        <div className="round-select-card">
-          <h2>How many rounds?</h2>
-          <div className="btn-row">
-            <button
-              className="btn"
-              onClick={() => {
-                setMockRounds(1);
-                setRoundsSelected(true);
-                setCurrentRound(1);
-              }}
-            >
-              1 Round
-            </button>
-            <button
-              className="btn btn-outline"
-              onClick={() => {
-                setMockRounds(2);
-                setRoundsSelected(true);
-                setCurrentRound(1);
-              }}
-            >
-              2 Rounds
-            </button>
-          </div>
-        </div>
+        <DraftSettings
+          rounds={mockRounds}
+          onRoundsChange={setMockRounds}
+          teams={settingsTeams}
+          controlledTeams={controlledTeams}
+          onControlledTeamsChange={setControlledTeams}
+          timerEnabled={timerEnabled}
+          onTimerEnabledChange={setTimerEnabled}
+          timerSeconds={timerSeconds}
+          onTimerSecondsChange={setTimerSeconds}
+          onStart={() => {
+            setRoundsSelected(true);
+            setCurrentRound(1);
+          }}
+        />
       )}
 
       {lottoPhase === "draft" && roundsSelected && currentRound === 1 && (
@@ -1759,6 +1784,8 @@ export default function LotteryPage() {
           draftLabel={selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
           onAutoNext={autoPick}
           autoNextDisabled={draftActionDisabled}
+          isUserPick={userOnClock}
+          clockSecondsLeft={clockSecondsLeft}
         />
       )}
 
@@ -1820,6 +1847,8 @@ export default function LotteryPage() {
           draftLabel={selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
           onAutoNext={() => safelyAssignRound2Picks("auto-next")}
           autoNextDisabled={false}
+          isUserPick={userOnClock}
+          clockSecondsLeft={clockSecondsLeft}
         />
       )}
 

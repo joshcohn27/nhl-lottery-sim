@@ -218,7 +218,7 @@ select {
 
 .page-title {
   font-family: var(--font-sans);
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-title);
   text-align: center;
   color: var(--color-text);
