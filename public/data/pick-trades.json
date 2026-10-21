@@ -36,10 +36,10 @@
       "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Andersson/Nemec multi-team trades (NHL.com, Jan 18 & June 23, 2026)"
     },
     {
-      "type": "multiRecipient",
+      "type": "unconditional",
       "from": "Toronto",
-      "to": ["Philadelphia", "Boston"],
-      "source": "Wikipedia: 2027 NHL entry draft, Unresolved conditional picks - Carlo trade (Boston) and Laughton trade (Philadelphia), both NHL.com March 7, 2025. Toronto's own pick never stays with Toronto. Real terms: goes to Philadelphia if it lands outside the top 10, or to whichever of Philadelphia/Boston Toronto chooses if it lands inside the top 10. Simplified here to always display both possible recipients rather than modeling the top-10 condition."
+      "to": "Philadelphia",
+      "source": "Carlo trade (Boston) and Laughton trade (Philadelphia), both NHL.com March 7, 2025. The top-10 choice between Boston and Philadelphia is no longer in play: as of 2026-10-20 this pick is confirmed to go to Philadelphia."
     }
   ],
   "round2": [

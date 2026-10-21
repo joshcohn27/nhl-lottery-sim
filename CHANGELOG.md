@@ -13,6 +13,12 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.7.1 - 2026-10-20
+- Toronto's 2027 first-round pick now goes to Philadelphia outright, no
+  longer shown as split between Philadelphia and Boston.
+- Add Vercel Analytics (committed separately as 318b2bd without a version
+  bump; recorded here).
+
 ## 2.7.0 - 2026-10-10
 - Save Draft on phones opens a full-screen view where each round fills exactly
   one screen, so a single screenshot captures a round. It opens inside the
