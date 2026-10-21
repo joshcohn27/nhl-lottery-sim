@@ -76,16 +76,15 @@ export function DraftRoom(props: DraftRoomProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const onClockIdx = picks.findIndex((_, idx) => isOnClock(idx));
 
-  // Keep the pick on the clock centered in the draft-order strip.
+  // Scroll the draft-order strip so the most recent pick sits fully at the
+  // left edge, with the pick on the clock right after it.
   useEffect(() => {
     const strip = stripRef.current;
     if (!strip || onClockIdx < 0) return;
-    const cell = strip.querySelector<HTMLElement>(`[data-idx="${onClockIdx}"]`);
+    const cell = strip.querySelector<HTMLElement>(`[data-idx="${Math.max(onClockIdx - 1, 0)}"]`);
     if (!cell) return;
-    strip.scrollTo({
-      left: cell.offsetLeft - strip.clientWidth / 2 + cell.offsetWidth / 2,
-      behavior: "smooth",
-    });
+    // The strip is position: relative, so offsetLeft is measured from its edge.
+    strip.scrollTo({ left: cell.offsetLeft, behavior: "smooth" });
   }, [onClockIdx]);
 
   const onClockVia = onClockPick ? viaTeam(onClockPick.note) : undefined;

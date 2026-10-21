@@ -588,6 +588,13 @@ export default function LotteryPage() {
     [draftPicks, prospects, round2Picks]
   );
 
+  // Moving between the lottery, the draft settings and each round of the draft
+  // starts back at the top of the page (the Start Mock Draft button sits below
+  // the standings table).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [lottoPhase, roundsSelected, currentRound]);
+
   // Whose pick it is right now, and whether the user is the one making it.
   const activeRound = lottoPhase === "draft" && roundsSelected ? currentRound : null;
   const round2Done = round2Picks.every((p) => p.player || p.forfeited);
@@ -1569,22 +1576,24 @@ export default function LotteryPage() {
             </h1>
           </div>
 
-          <p className="lottery-page-sub">
-            {lottoPhase === "draft"
-              ? `Build your ${DRAFT_YEAR} NHL first-round mock draft.`
-              : cameForMockDraft
-                ? `The mock draft starts from the lottery result, so the lottery comes first.`
-                : `Sim the ${DRAFT_YEAR} NHL Draft Lottery, then run your own mock draft!`}
-          </p>
-          <p className="status-line">
-            {standingsFile?.provisional
-              ? `Projected order, seeded from last season's final standings. ${SEASON_LABEL} season not yet underway.`
-              : seasonComplete
-                ? `Final order. ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
-                : `Projected order. ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}
-            {" "}
-            {csvStatus} {prospectStatus} {standingsFile ? "" : standingsStatus}
-          </p>
+          {/* The draft settings screen skips the subtitle and data status. */}
+          {lottoPhase !== "draft" && (
+            <>
+              <p className="lottery-page-sub">
+                {cameForMockDraft
+                  ? `The mock draft starts from the lottery result, so the lottery comes first.`
+                  : `Sim the ${DRAFT_YEAR} NHL Draft Lottery, then run your own mock draft!`}
+              </p>
+              <p className="status-line">
+                {standingsFile?.provisional
+                  ? `Projected order, seeded from last season's final standings. ${SEASON_LABEL} season not yet underway.`
+                  : seasonComplete
+                    ? `Final order. ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
+                    : `Projected order. ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}{" "}
+                {csvStatus} {prospectStatus} {standingsFile ? "" : standingsStatus}
+              </p>
+            </>
+          )}
         </>
       )}
 

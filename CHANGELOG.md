@@ -13,6 +13,13 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.9.2 - 2026-10-20
+- Pages, the draft settings screen and each draft round open at the top
+  instead of at the previous scroll position.
+- Draft-order strip keeps the last pick fully in view, with the pick on the
+  clock right after it; the on-the-clock cell is outlined and darker.
+- Draft settings screen drops the subtitle and data status line.
+
 ## 2.9.1 - 2026-10-20
 - Thinner underline on the lottery ball numbers.
 
