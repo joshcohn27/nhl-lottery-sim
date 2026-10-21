@@ -49,13 +49,12 @@
   justify-content: center;
 }
 
+/* Flat sections divided by rules, not boxes nested inside the card. */
 .combo-box,
 .result-banner {
   width: 100%;
-  background: var(--color-purple-tint);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  padding: var(--space-3) var(--space-4) 0;
   text-align: center;
 }
 
@@ -159,165 +158,6 @@
   font-size: 10px;
   font-weight: var(--font-weight-bold);
   margin-right: 4px;
-}
-
-/* Draft board */
-.draft-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  margin-bottom: var(--space-4);
-}
-
-.draft-layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: var(--space-6);
-}
-
-@media (max-width: 900px) {
-  .draft-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.draft-board {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  max-height: 78vh;
-  overflow-y: auto;
-}
-
-.pick-row {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  gap: var(--space-3);
-  align-items: center;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-4);
-}
-
-.pick-row.on-clock {
-  border-color: var(--color-purple);
-  background: var(--color-purple-tint);
-}
-
-.pick-row.forfeited {
-  opacity: 0.4;
-}
-
-.pick-number {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-black);
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-.on-clock-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-purple);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.pick-player {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.pick-note {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.prospect-panel {
-  background: var(--color-white);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  position: sticky;
-  top: calc(var(--header-height) + var(--space-4));
-}
-
-.prospect-panel-title {
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--color-purple);
-  border-bottom: 1px solid var(--color-divider);
-  padding-bottom: var(--space-2);
-}
-
-.on-clock-card {
-  background: var(--color-purple-tint);
-  border: 1px solid var(--color-purple);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  text-align: center;
-}
-
-.on-clock-card .team-name {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-purple);
-}
-
-
-.prospect-list {
-  max-height: 380px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.prospect-row {
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
-}
-
-.prospect-row.selected {
-  border-color: var(--color-purple);
-  background: var(--color-purple-tint);
-}
-
-.prospect-rank {
-  color: var(--color-purple);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-sm);
-  margin-right: var(--space-2);
-}
-
-.prospect-meta {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.complete-card {
-  background: var(--color-white);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  padding: var(--space-8);
-  text-align: center;
-}
-
-.complete-card h2 {
-  color: var(--color-purple);
-  margin: 0 0 var(--space-2);
 }
 
 .round-select-card {

@@ -1,0 +1,401 @@
+/* Mock draft room. Flat layout: sections are separated by rules, not nested
+   cards. On desktop the room fills the viewport below the site header so the
+   draft order, prospect board and team panel are all visible at once; the
+   prospect list and team panel scroll inside themselves. */
+
+.dr {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-height) - var(--space-6));
+  height: calc(100dvh - var(--header-height) - var(--space-6));
+  min-height: 560px;
+  padding-top: var(--space-4);
+}
+
+.dr:has(.dr-complete) {
+  height: auto;
+  min-height: 0;
+}
+
+.dr-muted {
+  color: var(--color-text-muted);
+}
+
+.dr-num {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-purple);
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* Header row */
+.dr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
+}
+
+.dr-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.dr-status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: 2px;
+}
+
+.dr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dr-actions .btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+/* Draft order strip */
+.dr-strip {
+  display: flex;
+  overflow-x: auto;
+  border-top: 2px solid var(--color-purple);
+  border-bottom: 1px solid var(--color-divider);
+  scrollbar-width: thin;
+}
+
+.dr-strip.is-hidden {
+  display: none;
+}
+
+.dr-cell {
+  flex: 0 0 132px;
+  padding: var(--space-2) var(--space-3);
+  border-right: 1px solid var(--color-divider);
+  font-size: var(--font-size-sm);
+  min-width: 0;
+}
+
+.dr-cell.is-on-clock {
+  background: var(--color-purple-tint);
+  box-shadow: inset 0 -3px 0 var(--color-purple);
+}
+
+.dr-cell.is-forfeited {
+  opacity: 0.45;
+}
+
+.dr-cell-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.dr-cell-num {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-bold);
+  margin-right: 2px;
+}
+
+.dr-cell-team {
+  font-weight: var(--font-weight-bold);
+}
+
+.dr-cell-via {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.dr-cell-player {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dr-cell.is-done .dr-cell-player {
+  color: var(--color-text);
+}
+
+.dr-cell.is-on-clock .dr-cell-player {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Main area: prospect board + team panel */
+.dr-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.dr-board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--color-divider);
+}
+
+.dr-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-2) 0;
+  flex-wrap: wrap;
+}
+
+.dr-tabs {
+  display: flex;
+}
+
+.dr-tab {
+  border: 1px solid var(--color-divider);
+  border-right-width: 0;
+  background: var(--color-white);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.dr-tab:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.dr-tab:last-child {
+  border-right-width: 1px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.dr-tab.is-active {
+  background: var(--color-purple);
+  border-color: var(--color-purple);
+  color: var(--color-white);
+}
+
+.dr-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.dr-search {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  padding: 6px var(--space-3);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.dr-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.dr-prospects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dr-prospect {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-1);
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+}
+
+.dr-prospect:hover {
+  background: #faf9fc;
+}
+
+.dr-prospect.is-selected {
+  background: var(--color-purple-tint);
+  box-shadow: inset 3px 0 0 var(--color-purple);
+}
+
+.dr-prospect-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-bold);
+}
+
+.dr-prospect-meta {
+  display: block;
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.dr-inline-draft {
+  padding: 6px var(--space-4);
+  font-size: var(--font-size-xs);
+}
+
+/* Team panel */
+.dr-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dr-team {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  margin-bottom: var(--space-1);
+}
+
+.dr-team-name {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+}
+
+.dr-team .dr-muted {
+  font-size: var(--font-size-sm);
+}
+
+.dr-wide {
+  width: 100%;
+}
+
+.dr-side-label {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.dr-team-picks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dr-team-picks li {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: var(--font-size-sm);
+}
+
+.dr-team-picks li.is-current {
+  color: var(--color-purple);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Round complete: summary + full results */
+.dr-complete {
+  padding-top: var(--space-4);
+}
+
+.dr-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  columns: 2;
+  column-gap: var(--space-8);
+  border-top: 1px solid var(--color-divider);
+}
+
+.dr-results li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-divider);
+  break-inside: avoid;
+  font-size: var(--font-size-sm);
+}
+
+.dr-results li.is-forfeited {
+  opacity: 0.5;
+}
+
+.dr-results-team {
+  font-weight: var(--font-weight-bold);
+  min-width: 3.5em;
+}
+
+.dr-results-player {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Phones and narrow windows: stack everything and let the page scroll. */
+@media (max-width: 900px) {
+  .dr {
+    height: auto;
+    min-height: 0;
+  }
+
+  .dr-main {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .dr-board {
+    border-right: 0;
+  }
+
+  .dr-prospects {
+    max-height: 60vh;
+  }
+
+  .dr-side {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-divider);
+  }
+
+  .dr-team-picks,
+  .dr-side-label {
+    display: none;
+  }
+
+  .dr-results {
+    columns: 1;
+  }
+
+  /* One swipeable row of actions instead of three rows of buttons. */
+  .dr-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .dr-actions .btn {
+    flex: 0 0 auto;
+  }
+}

@@ -17,7 +17,7 @@
   --color-chip-fallback-text: #ffffff;
 
   /* Type */
-  --font-sans: "Source Sans 3", "Source Sans Pro", "Open Sans", "Segoe UI", sans-serif;
+  --font-sans: Arial, Helvetica, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.85rem;
   --font-size-base: 0.95rem;
@@ -478,6 +478,18 @@ select {
 }
 
 @media (max-width: 720px) {
+  .site-wordmark {
+    font-size: var(--font-size-sm);
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .site-wordmark span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .site-header-tabs {
     display: none;
   }

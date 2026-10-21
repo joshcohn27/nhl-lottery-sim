@@ -13,6 +13,14 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.8.0 - 2026-10-20
+- Mock draft redesign: draft-order strip across the top that follows the pick
+  on the clock; prospect board with position tabs and search; on-the-clock
+  team panel with that team's other picks. Fits on one screen on desktop.
+  Flat layout, no boxes inside boxes. Draft behavior is unchanged.
+- Site font switched to Arial.
+- Lottery card flattened (no nested boxes).
+
 ## 2.7.1 - 2026-10-20
 - Toronto's 2027 first-round pick now goes to Philadelphia outright, no
   longer shown as split between Philadelphia and Boston.

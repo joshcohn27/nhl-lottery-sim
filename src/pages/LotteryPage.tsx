@@ -40,6 +40,7 @@ import {
   type LotteryComboRow,
 } from "../lib/lotteryDraw";
 import { TradedPickTeam } from "../components/TradedPickTeam";
+import { DraftRoom } from "../components/DraftRoom";
 import { Tooltip } from "../components/Tooltip";
 import { abbrevForTeamName } from "../lib/teams";
 import {
@@ -995,7 +996,7 @@ export default function LotteryPage() {
       margin: 0;
       background: #fff;
       color: #333;
-      font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -1727,12 +1728,16 @@ export default function LotteryPage() {
       )}
 
       {lottoPhase === "draft" && roundsSelected && currentRound === 1 && (
-        <div>
-          <div className="draft-toolbar">
-            <h2 className="page-title" style={{ fontSize: "1.6rem" }}>
-              {DRAFT_YEAR} Mock Draft - Round 1
-            </h2>
-            <div className="btn-row">
+        <DraftRoom
+          title={`${DRAFT_YEAR} Mock Draft · Round 1`}
+          picks={draftPicks}
+          isOnClock={(idx) => idx === currentPickIdx && !isDraftDone}
+          onClockPick={isDraftDone ? undefined : curPick}
+          isComplete={isDraftDone}
+          completeTitle="Round 1 Complete"
+          completeText="All 32 picks have been made."
+          actions={
+            <>
               <button className="btn btn-outline" onClick={() => setLottoPhase("lottery")}>
                 Back to Lottery
               </button>
@@ -1764,143 +1769,48 @@ export default function LotteryPage() {
               <button className="btn btn-danger" onClick={resetLottery}>
                 New Simulation
               </button>
-            </div>
-          </div>
-
-          <div className="draft-layout">
-            <div className="draft-board">
-              {draftPicks.map((pick, idx) => {
-                const onClock = idx === currentPickIdx && !isDraftDone;
-                return (
-                  <div key={`${pick.pick}-${pick.team}`} className={`pick-row${onClock ? " on-clock" : ""}`}>
-                    <div className="pick-number">{pick.pick}</div>
-                    <div>
-                      {onClock && <div className="on-clock-label">On the clock</div>}
-                      <TradedPickTeam team={pick.team} note={pick.note} />
-                      {pick.player ? (
-                        <div className="pick-player">
-                          {pick.player.name}
-                          {formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}
-                        </div>
-                      ) : (
-                        <div className="pick-player" style={{ fontStyle: "italic" }}>
-                          -
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div>
-              {!isDraftDone ? (
-                <div className="prospect-panel">
-                  <div className="prospect-panel-title">Available Prospects</div>
-                  <div className="on-clock-card">
-                    <div className="result-pick-label">Pick #{curPick?.pick}</div>
-                    <div className="team-name">{curPick?.team}</div>
-                  </div>
-                  <button
-                    className="btn"
-                    onClick={makePick}
-                    disabled={!selectedProspect || draftActionDisabled}
-                    style={{ width: "100%" }}
-                  >
-                    {selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-                  </button>
-                  <button className="btn btn-outline" onClick={autoPick} disabled={draftActionDisabled}>
-                    Auto-Pick Next
-                  </button>
-                  <input
-                    className="form-input"
-                    placeholder="Search prospects"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setSelectedProspect(null);
-                    }}
-                    disabled={draftActionDisabled}
-                  />
-                  <select
-                    className="form-input"
-                    value={positionFilter}
-                    onChange={(e) => {
-                      setPositionFilter(e.target.value as ProspectPositionFilter);
-                      setSelectedProspect(null);
-                    }}
-                    disabled={draftActionDisabled}
-                  >
-                    <option value="all">All Positions</option>
-                    <option value="centers">Centers</option>
-                    <option value="wingers">Wingers</option>
-                    <option value="forwards">Forwards</option>
-                    <option value="defense">Defense</option>
-                    <option value="goalies">Goalies</option>
-                  </select>
-                  <div className="prospect-list">
-                    {filteredProspects.map((prospect) => (
-                      <div
-                        key={prospect.rank}
-                        className={`prospect-row${selectedProspect?.rank === prospect.rank ? " selected" : ""}`}
-                        onClick={() => {
-                          if (!draftActionDisabled && !takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
-                        }}
-                      >
-                        <span className="prospect-rank">#{prospect.rank}</span>
-                        <strong>{prospect.name}</strong>
-                        <div className="prospect-meta">{formatProspectMeta(prospect)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="complete-card">
-                  <h2>Round 1 Complete</h2>
-                  <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-5)" }}>
-                    All 32 picks have been made.
-                  </p>
-                  <div className="btn-row">
-                    <button className="btn btn-outline" onClick={copyResults}>
-                      {copyLabel}
-                    </button>
-                    <button className="btn btn-outline" onClick={saveDraft}>
-                      Save Draft
-                    </button>
-                    {mockRounds === 2 && (
-                      <button className="btn" onClick={() => setCurrentRound(2)}>
-                        Continue to Round 2
-                      </button>
-                    )}
-                    {mockRounds === 1 && (
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => {
-                          setMockRounds(2);
-                          setCurrentRound(2);
-                        }}
-                      >
-                        Add Round 2
-                      </button>
-                    )}
-                    <button className="btn btn-danger" onClick={resetLottery}>
-                      New Simulation
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          teamPicks={[...draftPicks, ...(mockRounds === 2 ? round2Picks.filter((p) => !p.forfeited) : [])].filter(
+            (p) => p.team === curPick?.team
+          )}
+          prospects={filteredProspects}
+          selectedProspect={selectedProspect}
+          onSelectProspect={(prospect) => {
+            if (!draftActionDisabled && !takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
+          }}
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setSelectedProspect(null);
+          }}
+          positionFilter={positionFilter}
+          onPositionFilterChange={(value) => {
+            setPositionFilter(value);
+            setSelectedProspect(null);
+          }}
+          controlsDisabled={draftActionDisabled}
+          onDraft={makePick}
+          draftDisabled={!selectedProspect || draftActionDisabled}
+          draftLabel={selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
+          onAutoNext={autoPick}
+          autoNextDisabled={draftActionDisabled}
+        />
       )}
 
       {lottoPhase === "draft" && roundsSelected && currentRound === 2 && (
-        <div>
-          <div className="draft-toolbar">
-            <h2 className="page-title" style={{ fontSize: "1.6rem" }}>
-              {DRAFT_YEAR} Mock Draft - Round 2
-            </h2>
-            <div className="btn-row">
+        <DraftRoom
+          title={`${DRAFT_YEAR} Mock Draft · Round 2`}
+          picks={round2Picks}
+          isOnClock={(idx) =>
+            idx === round2PickIdx && !round2Picks[idx].forfeited && !round2Picks.every((p) => p.player || p.forfeited)
+          }
+          onClockPick={round2Picks.every((p) => p.player || p.forfeited) ? undefined : round2Picks[round2PickIdx]}
+          isComplete={round2Picks.every((p) => p.player || p.forfeited)}
+          completeTitle="Draft Complete"
+          completeText="All picks have been made."
+          actions={
+            <>
               <button className="btn btn-outline" onClick={() => setCurrentRound(1)}>
                 Back to Round 1
               </button>
@@ -1920,135 +1830,33 @@ export default function LotteryPage() {
               <button className="btn btn-danger" onClick={resetLottery}>
                 New Simulation
               </button>
-            </div>
-          </div>
-
-          <div className="draft-layout">
-            <div className="draft-board">
-              {round2Picks.map((pick, idx) => {
-                const onClock = idx === round2PickIdx && !pick.forfeited && !round2Picks.every((p) => p.player || p.forfeited);
-                return (
-                  <div
-                    key={`r2-${pick.pick}`}
-                    className={`pick-row${pick.forfeited ? " forfeited" : ""}${onClock ? " on-clock" : ""}`}
-                  >
-                    <div className="pick-number">{pick.pick}</div>
-                    <div>
-                      {onClock && <div className="on-clock-label">On the clock</div>}
-                      {pick.forfeited ? (
-                        <>
-                          <div>Forfeited</div>
-                          <div className="pick-note">{pick.note}</div>
-                        </>
-                      ) : (
-                        <>
-                          <TradedPickTeam team={pick.team} note={pick.note} />
-                          {pick.player ? (
-                            <div className="pick-player">
-                              {pick.player.name}
-                              {formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}
-                            </div>
-                          ) : (
-                            <div className="pick-player" style={{ fontStyle: "italic" }}>
-                              -
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div>
-              {!round2Picks.every((p) => p.player || p.forfeited) ? (
-                <div className="prospect-panel">
-                  <div className="prospect-panel-title">Available Prospects</div>
-                  {(() => {
-                    const curR2Pick = round2Picks[round2PickIdx];
-                    return (
-                      <>
-                        <div className="on-clock-card">
-                          <div className="result-pick-label">Pick #{curR2Pick?.pick}</div>
-                          <div className="team-name">{curR2Pick?.team}</div>
-                        </div>
-                        <button
-                          className="btn"
-                          style={{ width: "100%" }}
-                          onClick={() => safelyAssignRound2Picks("manual", selectedProspect)}
-                          disabled={!selectedProspect}
-                        >
-                          {selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-                        </button>
-                        <button className="btn btn-outline" onClick={() => safelyAssignRound2Picks("auto-next")}>
-                          Auto-Pick Next
-                        </button>
-                        <input
-                          className="form-input"
-                          placeholder="Search prospects"
-                          value={search}
-                          onChange={(e) => {
-                            setSearch(e.target.value);
-                            setSelectedProspect(null);
-                          }}
-                        />
-                        <select
-                          className="form-input"
-                          value={positionFilter}
-                          onChange={(e) => {
-                            setPositionFilter(e.target.value as ProspectPositionFilter);
-                            setSelectedProspect(null);
-                          }}
-                        >
-                          <option value="all">All Positions</option>
-                          <option value="centers">Centers</option>
-                          <option value="wingers">Wingers</option>
-                          <option value="forwards">Forwards</option>
-                          <option value="defense">Defense</option>
-                          <option value="goalies">Goalies</option>
-                        </select>
-                        <div className="prospect-list">
-                          {filteredProspects.map((prospect) => (
-                            <div
-                              key={prospect.rank}
-                              className={`prospect-row${selectedProspect?.rank === prospect.rank ? " selected" : ""}`}
-                              onClick={() => {
-                                if (!takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
-                              }}
-                            >
-                              <span className="prospect-rank">#{prospect.rank}</span>
-                              <strong>{prospect.name}</strong>
-                              <div className="prospect-meta">{formatProspectMeta(prospect)}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div className="complete-card">
-                  <h2>Draft Complete</h2>
-                  <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-5)" }}>
-                    All picks have been made.
-                  </p>
-                  <div className="btn-row">
-                    <button className="btn btn-outline" onClick={copyResults}>
-                      {copyLabel}
-                    </button>
-                    <button className="btn btn-outline" onClick={saveDraft}>
-                      Save Draft
-                    </button>
-                    <button className="btn btn-danger" onClick={resetLottery}>
-                      New Simulation
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          teamPicks={[...draftPicks, ...round2Picks.filter((p) => !p.forfeited)].filter(
+            (p) => p.team === round2Picks[round2PickIdx]?.team
+          )}
+          prospects={filteredProspects}
+          selectedProspect={selectedProspect}
+          onSelectProspect={(prospect) => {
+            if (!takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
+          }}
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setSelectedProspect(null);
+          }}
+          positionFilter={positionFilter}
+          onPositionFilterChange={(value) => {
+            setPositionFilter(value);
+            setSelectedProspect(null);
+          }}
+          controlsDisabled={false}
+          onDraft={() => safelyAssignRound2Picks("manual", selectedProspect)}
+          draftDisabled={!selectedProspect}
+          draftLabel={selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
+          onAutoNext={() => safelyAssignRound2Picks("auto-next")}
+          autoNextDisabled={false}
+        />
       )}
 
       {saveViewHtml !== null && (
