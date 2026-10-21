@@ -41,6 +41,7 @@ import {
 } from "../lib/lotteryDraw";
 import { TradedPickTeam } from "../components/TradedPickTeam";
 import { DraftRoom } from "../components/DraftRoom";
+import { chooseAutoPick } from "../lib/autoPick";
 import { Tooltip } from "../components/Tooltip";
 import { abbrevForTeamName } from "../lib/teams";
 import {
@@ -428,35 +429,15 @@ export default function LotteryPage() {
       const getSmartAutoPick = (
         picks: DraftPick[],
         takenRanks: Set<number>,
-        teamName: string
+        teamName: string,
+        pickNumber: number
       ): Prospect | undefined => {
         const teamPositions = picks
           .filter((p) => p.team === teamName && p.player)
           .map((p) => p.player!.pos);
 
         const available = prospects.filter((p) => !takenRanks.has(p.rank));
-        if (available.length === 0) return undefined;
-
-        const top = available[0];
-
-        // If top prospect is 5+ ranks better than anyone else, just take them (BPA steal logic)
-        if (available.length > 1 && top.rank + 5 < available[1].rank) return top;
-
-        // Score each prospect: base is rank, add soft penalty for position overlap, add random jitter
-        const scored = available.slice(0, 12).map((p) => {
-          const posTokens = p.pos.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
-          const overlap = posTokens.some((token) =>
-            teamPositions.some((existing) =>
-              existing.toUpperCase().split(/[^A-Z]+/).filter(Boolean).includes(token)
-            )
-          );
-          const penalty = overlap ? 3 : 0;
-          const jitter = Math.floor(Math.random() * 3); // 0-2 random variance
-          return { prospect: p, score: p.rank + penalty + jitter };
-        });
-
-        scored.sort((a, b) => a.score - b.score);
-        return scored[0]?.prospect;
+        return chooseAutoPick(available, teamPositions, pickNumber);
       };
 
       setDraftPicks((prev) => {
@@ -488,7 +469,7 @@ export default function LotteryPage() {
 
         if (mode === "auto-next") {
           const teamName = updated[nextOpenPickIdx].team;
-          const pick = getSmartAutoPick(updated, latestTaken, teamName);
+          const pick = getSmartAutoPick(updated, latestTaken, teamName, updated[nextOpenPickIdx].pick);
           if (!pick) { pickLockRef.current = false; return updated; }
           updated[nextOpenPickIdx] = { ...updated[nextOpenPickIdx], player: pick };
           latestTaken.add(pick.rank);
@@ -499,7 +480,7 @@ export default function LotteryPage() {
           while (idx < updated.length) {
             if (updated[idx].player) { idx++; continue; }
             const teamName = updated[idx].team;
-            const pick = getSmartAutoPick(updated, latestTaken, teamName);
+            const pick = getSmartAutoPick(updated, latestTaken, teamName, updated[idx].pick);
             if (!pick) break;
             updated[idx] = { ...updated[idx], player: pick };
             latestTaken.add(pick.rank);
@@ -558,7 +539,8 @@ export default function LotteryPage() {
         r1picks: DraftPick[],
         r2picks: Round2Pick[],
         takenRanks: Set<number>,
-        teamName: string
+        teamName: string,
+        pickNumber: number
       ): Prospect | undefined => {
         const teamPositions = [
           ...r1picks.filter((p) => p.team === teamName && p.player).map((p) => p.player!.pos),
@@ -566,25 +548,7 @@ export default function LotteryPage() {
         ];
 
         const available = prospects.filter((p) => !takenRanks.has(p.rank));
-        if (available.length === 0) return undefined;
-
-        const top = available[0];
-        if (available.length > 1 && top.rank + 5 < available[1].rank) return top;
-
-        const scored = available.slice(0, 12).map((p) => {
-          const posTokens = p.pos.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
-          const overlap = posTokens.some((token) =>
-            teamPositions.some((existing) =>
-              existing.toUpperCase().split(/[^A-Z]+/).filter(Boolean).includes(token)
-            )
-          );
-          const penalty = overlap ? 3 : 0;
-          const jitter = Math.floor(Math.random() * 3);
-          return { prospect: p, score: p.rank + penalty + jitter };
-        });
-
-        scored.sort((a, b) => a.score - b.score);
-        return scored[0]?.prospect;
+        return chooseAutoPick(available, teamPositions, pickNumber);
       };
 
       const updated = [...round2Picks];
@@ -622,7 +586,7 @@ export default function LotteryPage() {
 
       if (mode === "auto-next") {
         const teamName = updated[nextOpenIdx].team;
-        const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+        const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName, updated[nextOpenIdx].pick);
         if (!pick) { pickLockRef.current = false; return; }
         updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: pick };
         latestTaken.add(pick.rank);
@@ -633,7 +597,7 @@ export default function LotteryPage() {
         while (idx < updated.length) {
           if (updated[idx].player || updated[idx].forfeited) { idx++; continue; }
           const teamName = updated[idx].team;
-          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName, updated[idx].pick);
           if (!pick) break;
           updated[idx] = { ...updated[idx], player: pick };
           latestTaken.add(pick.rank);
