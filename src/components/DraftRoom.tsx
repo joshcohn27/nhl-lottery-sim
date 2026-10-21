@@ -102,6 +102,11 @@ function shortTeam(team: string): string {
     .join("/");
 }
 
+/** How a drafted player is shown in the room: "C - Alexis Joseph". */
+function draftedLabel(player: Prospect): string {
+  return `${player.pos} - ${player.name}`;
+}
+
 function viaTeam(note: string): string | undefined {
   return note.match(/^\(via ([^,)]+)/)?.[1];
 }
@@ -162,7 +167,7 @@ export function DraftRoom(props: DraftRoomProps) {
               key={`${pick.pick}-${pick.team}`}
               data-idx={idx}
               className={`dr-cell${onClock ? " is-on-clock" : ""}${pick.player ? " is-done" : ""}${pick.forfeited ? " is-forfeited" : ""}`}
-              title={pick.note || undefined}
+              title={[pick.player && draftedLabel(pick.player), pick.note].filter(Boolean).join(" · ") || undefined}
             >
               <div className="dr-cell-top">
                 <span className="dr-cell-num">{pick.pick}</span>
@@ -177,7 +182,7 @@ export function DraftRoom(props: DraftRoomProps) {
                 )}
               </div>
               <div className="dr-cell-player">
-                {onClock ? "On the clock" : pick.player ? pick.player.name : "—"}
+                {onClock ? "On the clock" : pick.player ? draftedLabel(pick.player) : "—"}
               </div>
             </div>
           );
@@ -197,8 +202,7 @@ export function DraftRoom(props: DraftRoomProps) {
                     <TeamLogo teamName={pick.team.split(MULTI_RECIPIENT_SEPARATOR)[0]} size={16} />
                     <span className="dr-results-team">{shortTeam(pick.team)}</span>
                     <span className="dr-results-player">
-                      {pick.player ? pick.player.name : "—"}
-                      {pick.player && <span className="dr-muted"> {pick.player.pos}</span>}
+                      {pick.player ? draftedLabel(pick.player) : "—"}
                     </span>
                   </>
                 )}
@@ -327,8 +331,7 @@ export function DraftRoom(props: DraftRoomProps) {
                   <li key={pick.pick}>
                     <span className="dr-num">{pick.pick}</span>
                     <span>
-                      {pick.player?.name}
-                      <span className="dr-muted"> {pick.player?.pos}</span>
+                      {pick.player && draftedLabel(pick.player)}
                     </span>
                   </li>
                 ))}

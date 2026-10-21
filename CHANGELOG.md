@@ -13,6 +13,11 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.10.1 - 2026-10-20
+- Drafted players show their position first, e.g. "C - Alexis Joseph", in
+  the draft strip, round results and team panel. Strip cells are a little
+  wider, and hovering one shows the full name.
+
 ## 2.10.0 - 2026-10-20
 - Every prospect row has its own Draft button; players are no longer
   selected first.
