@@ -696,6 +696,24 @@
   color: #a94442;
 }
 
+.dr-start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.dr-start p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.dr-start .btn {
+  width: 100%;
+}
+
 .dr-auto-note {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);

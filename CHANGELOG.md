@@ -13,6 +13,11 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.11.0 - 2026-10-20
+- When a computer-controlled team has the first pick, the draft room opens
+  paused with a Start Draft button, so you can look over the board and set
+  favorites before the computer teams begin picking.
+
 ## 2.10.3 - 2026-10-20
 - Copy Results lists only picks that have been made, and includes round 2
   only in a two-round mock (it used to list every undrafted pick, including

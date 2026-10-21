@@ -44,6 +44,9 @@ interface DraftRoomProps {
   draftDisabled: boolean;
   /** False while a team the user isn't controlling is on the clock. */
   isUserPick: boolean;
+  /** True while the draft room is open but the first (computer) pick is waiting on the user. */
+  awaitingStart: boolean;
+  onStartDraft: () => void;
   /** Seconds left on the pick timer, or null when there's no timer running. */
   clockSecondsLeft: number | null;
 }
@@ -329,7 +332,16 @@ export function DraftRoom(props: DraftRoomProps) {
                 )}
               </div>
             )}
-            {!props.isUserPick && <div className="dr-auto-note">Auto-picking for {onClockPick?.team}…</div>}
+            {props.awaitingStart ? (
+              <div className="dr-start">
+                <p>Look over the board and star your favorites. The computer teams start picking when you're ready.</p>
+                <button type="button" className="btn" onClick={props.onStartDraft}>
+                  Start Draft
+                </button>
+              </div>
+            ) : (
+              !props.isUserPick && <div className="dr-auto-note">Auto-picking for {onClockPick?.team}…</div>
+            )}
 
             <div className="dr-side-label">Drafted</div>
             {draftedTeamPicks.length > 0 ? (

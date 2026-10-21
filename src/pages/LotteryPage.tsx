@@ -188,6 +188,8 @@ export default function LotteryPage() {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [clock, setClock] = useState<{ key: string; secondsLeft: number } | null>(null);
+  // False from the settings screen until the user starts the draft room's clock.
+  const [draftStarted, setDraftStarted] = useState(false);
 
   useEffect(() => {
     fetch(COMBOS_CSV_PATH)
@@ -612,13 +614,19 @@ export default function LotteryPage() {
     };
   });
 
+  // When a computer team has the first pick, the draft room opens paused so
+  // the user can look over the board and set favorites first. Once any pick
+  // is made the draft is under way.
+  const awaitingStart =
+    activeRound === 1 && !draftStarted && !userOnClock && !!onClockTeam && draftPicks.every((p) => !p.player);
+
   // Teams the user isn't controlling pick on their own, after a short pause
   // so each pick is visible as it happens.
   useEffect(() => {
-    if (!onClockKey || userOnClock) return;
+    if (!onClockKey || userOnClock || awaitingStart) return;
     const timeout = setTimeout(() => autoPickOnClockRef.current(), CPU_PICK_DELAY_MS);
     return () => clearTimeout(timeout);
-  }, [onClockKey, userOnClock]);
+  }, [onClockKey, userOnClock, awaitingStart]);
 
   // Pick timer: restarts for each of the user's picks; at zero the pick is
   // made automatically.
@@ -1723,6 +1731,7 @@ export default function LotteryPage() {
           onStart={() => {
             setRoundsSelected(true);
             setCurrentRound(1);
+            setDraftStarted(false);
           }}
         />
       )}
@@ -1789,6 +1798,8 @@ export default function LotteryPage() {
           draftDisabled={draftActionDisabled}
           isUserPick={userOnClock}
           clockSecondsLeft={clockSecondsLeft}
+          awaitingStart={awaitingStart}
+          onStartDraft={() => setDraftStarted(true)}
         />
       )}
 
@@ -1848,6 +1859,8 @@ export default function LotteryPage() {
           draftDisabled={false}
           isUserPick={userOnClock}
           clockSecondsLeft={clockSecondsLeft}
+          awaitingStart={awaitingStart}
+          onStartDraft={() => setDraftStarted(true)}
         />
       )}
 
