@@ -13,6 +13,57 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.10.2 - 2026-10-20
+- Draft strip uses first initial and last name ("C - A. Joseph") so names
+  fit; full names stay in the results and team panel.
+
+## 2.10.1 - 2026-10-20
+- Drafted players show their position first, e.g. "C - Alexis Joseph", in
+  the draft strip, round results and team panel. Strip cells are a little
+  wider, and hovering one shows the full name.
+
+## 2.10.0 - 2026-10-20
+- Every prospect row has its own Draft button; players are no longer
+  selected first.
+- Star players as favorites (saved in the browser). Board toggles: Drafted
+  adds already-taken players back in with who took them, Favorites shows
+  only starred players; they can be combined.
+- The team panel now lists the on-the-clock team's drafted and upcoming
+  picks; Auto-Pick Next moved up next to Auto-Pick All.
+
+## 2.9.3 - 2026-10-20
+- Start Draft button moved to the top of the draft settings screen.
+
+## 2.9.2 - 2026-10-20
+- Pages, the draft settings screen and each draft round open at the top
+  instead of at the previous scroll position.
+- Draft-order strip keeps the last pick fully in view, with the pick on the
+  clock right after it; the on-the-clock cell is outlined and darker.
+- Draft settings screen drops the subtitle and data status line.
+
+## 2.9.1 - 2026-10-20
+- Thinner underline on the lottery ball numbers.
+
+## 2.9.0 - 2026-10-20
+- Draft settings screen: rounds, a pick timer (off by default, 60 seconds when
+  on), and a team picker laid out one division per row. Teams you don't
+  select pick automatically.
+- Auto-picks vary from run to run within limits: in round 1 no more than 5
+  spots past the best available and no deeper than the 3rd-best at a
+  position; round 2 allows 8 spots and the 4th-best, rarely. The top
+  prospect still goes 1st about 99.9% of the time.
+- Lottery balls restyled after the NHL's white ping pong balls.
+- Bolder page titles.
+- Alexis Joseph moved from 4th to 2nd in the prospect rankings.
+
+## 2.8.0 - 2026-10-20
+- Mock draft redesign: draft-order strip across the top that follows the pick
+  on the clock; prospect board with position tabs and search; on-the-clock
+  team panel with that team's other picks. Fits on one screen on desktop.
+  Flat layout, no boxes inside boxes. Draft behavior is unchanged.
+- Site font switched to Arial.
+- Lottery card flattened (no nested boxes).
+
 ## 2.7.1 - 2026-10-20
 - Toronto's 2027 first-round pick now goes to Philadelphia outright, no
   longer shown as split between Philadelphia and Boston.

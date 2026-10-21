@@ -40,6 +40,9 @@ import {
   type LotteryComboRow,
 } from "../lib/lotteryDraw";
 import { TradedPickTeam } from "../components/TradedPickTeam";
+import { DraftRoom } from "../components/DraftRoom";
+import { DraftSettings, type SettingsTeam } from "../components/DraftSettings";
+import { chooseAutoPick } from "../lib/autoPick";
 import { Tooltip } from "../components/Tooltip";
 import { abbrevForTeamName } from "../lib/teams";
 import {
@@ -87,22 +90,6 @@ const LOTTERY_HISTORY_JSON_PATH = "/data/lottery-history.json";
 const PLAYOFF_RESULTS_JSON_PATH = "/data/playoff-results.json";
 const GAMES_IN_SEASON = 84;
 
-const BALL_COLORS: [string, string][] = [
-  ["#c0392b", "#e74c3c"],
-  ["#d4ac0d", "#f1c40f"],
-  ["#1a5276", "#2980b9"],
-  ["#145a32", "#27ae60"],
-  ["#6c3483", "#8e44ad"],
-  ["#117a65", "#1abc9c"],
-  ["#7b241c", "#e74c3c"],
-  ["#784212", "#e67e22"],
-  ["#1c2833", "#566573"],
-  ["#0e6655", "#1abc9c"],
-  ["#4a235a", "#9b59b6"],
-  ["#78281f", "#cb4335"],
-  ["#154360", "#5dade2"],
-  ["#1e8449", "#58d68d"],
-];
 
 function escapeHtml(value: string | number | null | undefined): string {
   return String(value ?? "")
@@ -113,30 +100,12 @@ function escapeHtml(value: string | number | null | undefined): string {
     .replace(/'/g, "&#039;");
 }
 
+// Styled after the NHL's real lottery balls: white ping pong balls with a
+// bold black number, underlined so a 6 can't be mistaken for a 9.
 function DrawnBall({ n, isNew }: { n: number; isNew: boolean }) {
-  const [bg, light] = BALL_COLORS[n - 1] ?? ["#555", "#888"];
-
   return (
-    <div
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: "50%",
-        background: `radial-gradient(circle at 35% 30%, ${light}, ${bg})`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'Barlow Condensed', sans-serif",
-        fontSize: 28,
-        fontWeight: 900,
-        color: "#fff",
-        textShadow: "0 1px 3px rgba(0,0,0,.6)",
-        boxShadow: "0 8px 24px rgba(0,0,0,.45)",
-        flexShrink: 0,
-        animation: isNew ? "ballDrop .4s cubic-bezier(.22,.61,.36,1)" : "none",
-      }}
-    >
-      {n}
+    <div className="lotto-ball" style={{ animation: isNew ? "ballDrop .4s cubic-bezier(.22,.61,.36,1)" : "none" }}>
+      <span className="lotto-ball-number">{n}</span>
     </div>
   );
 }
@@ -148,13 +117,12 @@ function BallSlot({ idx }: { idx: number }) {
         width: 64,
         height: 64,
         borderRadius: "50%",
-        border: "2px dashed #2d3a50",
+        border: "2px dashed #b9b9c2",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "#2d3a50",
+        color: "#9a9aa5",
         fontSize: 13,
-        fontFamily: "'Barlow Condensed', sans-serif",
         fontWeight: 700,
         flexShrink: 0,
       }}
@@ -165,6 +133,8 @@ function BallSlot({ idx }: { idx: number }) {
 }
 
 const SAVE_VIEW_CLOSE_MESSAGE = "close-draft-save-view";
+/** Pause before a computer-controlled team makes its pick. */
+const CPU_PICK_DELAY_MS = 700;
 
 export default function LotteryPage() {
   const { pathname } = useLocation();
@@ -199,7 +169,6 @@ export default function LotteryPage() {
 
   const [draftPicks, setDraftPicks] = useState<DraftPick[]>([]);
   const [currentPickIdx, setCurrentPickIdx] = useState(0);
-  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [takenProspects, setTakenProspects] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [positionFilter, setPositionFilter] = useState<ProspectPositionFilter>("all");
@@ -214,6 +183,11 @@ export default function LotteryPage() {
   const [mockRounds, setMockRounds] = useState<1 | 2>(1);
   const [roundsSelected, setRoundsSelected] = useState(false);
   const [currentRound, setCurrentRound] = useState<1 | 2>(1);
+  // null = the user controls every team (the default).
+  const [controlledTeams, setControlledTeams] = useState<string[] | null>(null);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(60);
+  const [clock, setClock] = useState<{ key: string; secondsLeft: number } | null>(null);
 
   useEffect(() => {
     fetch(COMBOS_CSV_PATH)
@@ -427,35 +401,15 @@ export default function LotteryPage() {
       const getSmartAutoPick = (
         picks: DraftPick[],
         takenRanks: Set<number>,
-        teamName: string
+        teamName: string,
+        pickNumber: number
       ): Prospect | undefined => {
         const teamPositions = picks
           .filter((p) => p.team === teamName && p.player)
           .map((p) => p.player!.pos);
 
         const available = prospects.filter((p) => !takenRanks.has(p.rank));
-        if (available.length === 0) return undefined;
-
-        const top = available[0];
-
-        // If top prospect is 5+ ranks better than anyone else, just take them (BPA steal logic)
-        if (available.length > 1 && top.rank + 5 < available[1].rank) return top;
-
-        // Score each prospect: base is rank, add soft penalty for position overlap, add random jitter
-        const scored = available.slice(0, 12).map((p) => {
-          const posTokens = p.pos.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
-          const overlap = posTokens.some((token) =>
-            teamPositions.some((existing) =>
-              existing.toUpperCase().split(/[^A-Z]+/).filter(Boolean).includes(token)
-            )
-          );
-          const penalty = overlap ? 3 : 0;
-          const jitter = Math.floor(Math.random() * 3); // 0-2 random variance
-          return { prospect: p, score: p.rank + penalty + jitter };
-        });
-
-        scored.sort((a, b) => a.score - b.score);
-        return scored[0]?.prospect;
+        return chooseAutoPick(available, teamPositions, pickNumber);
       };
 
       setDraftPicks((prev) => {
@@ -471,7 +425,6 @@ export default function LotteryPage() {
         if (nextOpenPickIdx === -1) {
           setCurrentPickIdx(updated.length);
           setTakenProspects(latestTaken);
-          setSelectedProspect(null);
           pickLockRef.current = false;
           return updated;
         }
@@ -487,7 +440,7 @@ export default function LotteryPage() {
 
         if (mode === "auto-next") {
           const teamName = updated[nextOpenPickIdx].team;
-          const pick = getSmartAutoPick(updated, latestTaken, teamName);
+          const pick = getSmartAutoPick(updated, latestTaken, teamName, updated[nextOpenPickIdx].pick);
           if (!pick) { pickLockRef.current = false; return updated; }
           updated[nextOpenPickIdx] = { ...updated[nextOpenPickIdx], player: pick };
           latestTaken.add(pick.rank);
@@ -498,7 +451,7 @@ export default function LotteryPage() {
           while (idx < updated.length) {
             if (updated[idx].player) { idx++; continue; }
             const teamName = updated[idx].team;
-            const pick = getSmartAutoPick(updated, latestTaken, teamName);
+            const pick = getSmartAutoPick(updated, latestTaken, teamName, updated[idx].pick);
             if (!pick) break;
             updated[idx] = { ...updated[idx], player: pick };
             latestTaken.add(pick.rank);
@@ -509,7 +462,6 @@ export default function LotteryPage() {
         const nextIdx = updated.findIndex((pick) => !pick.player);
         setCurrentPickIdx(nextIdx === -1 ? updated.length : nextIdx);
         setTakenProspects(latestTaken);
-        setSelectedProspect(null);
         pickLockRef.current = false;
         return updated;
       });
@@ -557,7 +509,8 @@ export default function LotteryPage() {
         r1picks: DraftPick[],
         r2picks: Round2Pick[],
         takenRanks: Set<number>,
-        teamName: string
+        teamName: string,
+        pickNumber: number
       ): Prospect | undefined => {
         const teamPositions = [
           ...r1picks.filter((p) => p.team === teamName && p.player).map((p) => p.player!.pos),
@@ -565,25 +518,7 @@ export default function LotteryPage() {
         ];
 
         const available = prospects.filter((p) => !takenRanks.has(p.rank));
-        if (available.length === 0) return undefined;
-
-        const top = available[0];
-        if (available.length > 1 && top.rank + 5 < available[1].rank) return top;
-
-        const scored = available.slice(0, 12).map((p) => {
-          const posTokens = p.pos.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
-          const overlap = posTokens.some((token) =>
-            teamPositions.some((existing) =>
-              existing.toUpperCase().split(/[^A-Z]+/).filter(Boolean).includes(token)
-            )
-          );
-          const penalty = overlap ? 3 : 0;
-          const jitter = Math.floor(Math.random() * 3);
-          return { prospect: p, score: p.rank + penalty + jitter };
-        });
-
-        scored.sort((a, b) => a.score - b.score);
-        return scored[0]?.prospect;
+        return chooseAutoPick(available, teamPositions, pickNumber);
       };
 
       const updated = [...round2Picks];
@@ -605,7 +540,6 @@ export default function LotteryPage() {
       if (nextOpenIdx === -1) {
         setRound2PickIdx(updated.length);
         setTakenProspects(latestTaken);
-        setSelectedProspect(null);
         pickLockRef.current = false;
         return;
       }
@@ -621,7 +555,7 @@ export default function LotteryPage() {
 
       if (mode === "auto-next") {
         const teamName = updated[nextOpenIdx].team;
-        const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+        const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName, updated[nextOpenIdx].pick);
         if (!pick) { pickLockRef.current = false; return; }
         updated[nextOpenIdx] = { ...updated[nextOpenIdx], player: pick };
         latestTaken.add(pick.rank);
@@ -632,7 +566,7 @@ export default function LotteryPage() {
         while (idx < updated.length) {
           if (updated[idx].player || updated[idx].forfeited) { idx++; continue; }
           const teamName = updated[idx].team;
-          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName);
+          const pick = getSmartAutoPick(draftPicks, updated, latestTaken, teamName, updated[idx].pick);
           if (!pick) break;
           updated[idx] = { ...updated[idx], player: pick };
           latestTaken.add(pick.rank);
@@ -643,12 +577,80 @@ export default function LotteryPage() {
       const nextIdx = updated.findIndex((p) => !p.player && !p.forfeited);
       setRound2PickIdx(nextIdx === -1 ? updated.length : nextIdx);
       setTakenProspects(latestTaken);
-      setSelectedProspect(null);
       commitAssignments();
       pickLockRef.current = false;
     },
     [draftPicks, prospects, round2Picks]
   );
+
+  // Moving between the lottery, the draft settings and each round of the draft
+  // starts back at the top of the page (the Start Mock Draft button sits below
+  // the standings table).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [lottoPhase, roundsSelected, currentRound]);
+
+  // Whose pick it is right now, and whether the user is the one making it.
+  const activeRound = lottoPhase === "draft" && roundsSelected ? currentRound : null;
+  const round2Done = round2Picks.every((p) => p.player || p.forfeited);
+  const onClockTeam =
+    activeRound === 1
+      ? isDraftDone
+        ? undefined
+        : curPick?.team
+      : activeRound === 2 && !round2Done
+        ? round2Picks[round2PickIdx]?.team
+        : undefined;
+  const onClockKey = onClockTeam ? `${activeRound}-${activeRound === 1 ? currentPickIdx : round2PickIdx}` : null;
+  const userOnClock = !!onClockTeam && (controlledTeams === null || controlledTeams.includes(onClockTeam));
+
+  const autoPickOnClockRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    autoPickOnClockRef.current = () => {
+      if (activeRound === 1) safelyAssignPicks("auto-next");
+      else if (activeRound === 2) safelyAssignRound2Picks("auto-next");
+    };
+  });
+
+  // Teams the user isn't controlling pick on their own, after a short pause
+  // so each pick is visible as it happens.
+  useEffect(() => {
+    if (!onClockKey || userOnClock) return;
+    const timeout = setTimeout(() => autoPickOnClockRef.current(), CPU_PICK_DELAY_MS);
+    return () => clearTimeout(timeout);
+  }, [onClockKey, userOnClock]);
+
+  // Pick timer: restarts for each of the user's picks; at zero the pick is
+  // made automatically.
+  const clockSecondsLeft =
+    timerEnabled && userOnClock && onClockKey
+      ? clock?.key === onClockKey
+        ? clock.secondsLeft
+        : timerSeconds
+      : null;
+
+  useEffect(() => {
+    if (clockSecondsLeft === null || !onClockKey) return;
+    if (clockSecondsLeft <= 0) {
+      autoPickOnClockRef.current();
+      return;
+    }
+    const timeout = setTimeout(() => setClock({ key: onClockKey, secondsLeft: clockSecondsLeft - 1 }), 1000);
+    return () => clearTimeout(timeout);
+  }, [clockSecondsLeft, onClockKey]);
+
+  const settingsTeams = useMemo((): SettingsTeam[] => {
+    const owned = [...draftPicks, ...(mockRounds === 2 ? round2Picks.filter((p) => !p.forfeited) : [])];
+    return [...lotteryTeams, ...nonLotteryTeams].map((team) => {
+      const picks = owned.filter((p) => p.team === team.name).map((p) => p.pick);
+      return {
+        name: team.name,
+        divisionAbbrev: team.divisionAbbrev,
+        firstPick: picks.length > 0 ? Math.min(...picks) : null,
+        pickCount: picks.length,
+      };
+    });
+  }, [draftPicks, lotteryTeams, mockRounds, nonLotteryTeams, round2Picks]);
 
   const currentTargetPick = useMemo(
     () => getNextOpenLotteryPick(lotteryAssignments, lotteryTeams.length),
@@ -720,7 +722,6 @@ export default function LotteryPage() {
       setDraftPicks(order);
       setCurrentPickIdx(0);
       setTakenProspects(new Set());
-      setSelectedProspect(null);
       setLottoDone(true);
     },
     [buildOrderFromLotteryAssignments]
@@ -878,7 +879,6 @@ export default function LotteryPage() {
     setLottoPhase("lottery");
     setDraftPicks([]);
     setCurrentPickIdx(0);
-    setSelectedProspect(null);
     setTakenProspects(new Set());
     setSearch("");
     setPositionFilter("all");
@@ -889,10 +889,6 @@ export default function LotteryPage() {
     setCurrentRound(1);
     setRoundsSelected(false);
   }, []);
-
-  const makePick = useCallback(() => {
-    safelyAssignPicks("manual", selectedProspect);
-  }, [safelyAssignPicks, selectedProspect]);
 
   const autoPick = useCallback(() => {
     safelyAssignPicks("auto-next");
@@ -995,7 +991,7 @@ export default function LotteryPage() {
       margin: 0;
       background: #fff;
       color: #333;
-      font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -1388,7 +1384,7 @@ export default function LotteryPage() {
     return () => window.removeEventListener("message", onMessage);
   }, [saveViewHtml]);
 
-  const filteredProspects = prospects.filter((p) => {
+  const matchingProspects = prospects.filter((p) => {
     const searchLower = search.toLowerCase();
 
     const matchesSearch =
@@ -1397,7 +1393,14 @@ export default function LotteryPage() {
       p.league.toLowerCase().includes(searchLower) ||
       (p.team ?? "").toLowerCase().includes(searchLower);
 
-    return !takenProspects.has(p.rank) && matchesSearch && prospectMatchesPositionFilter(p, positionFilter);
+    return matchesSearch && prospectMatchesPositionFilter(p, positionFilter);
+  });
+
+  const filteredProspects = matchingProspects.filter((p) => !takenProspects.has(p.rank));
+
+  const draftedBy = new Map<number, { pick: number; team: string }>();
+  [...draftPicks, ...round2Picks].forEach((p) => {
+    if (p.player) draftedBy.set(p.player.rank, { pick: p.pick, team: p.team });
   });
 
   const comboRowTeamName = useCallback(
@@ -1569,22 +1572,24 @@ export default function LotteryPage() {
             </h1>
           </div>
 
-          <p className="lottery-page-sub">
-            {lottoPhase === "draft"
-              ? `Build your ${DRAFT_YEAR} NHL first-round mock draft.`
-              : cameForMockDraft
-                ? `The mock draft starts from the lottery result, so the lottery comes first.`
-                : `Sim the ${DRAFT_YEAR} NHL Draft Lottery, then run your own mock draft!`}
-          </p>
-          <p className="status-line">
-            {standingsFile?.provisional
-              ? `Projected order, seeded from last season's final standings. ${SEASON_LABEL} season not yet underway.`
-              : seasonComplete
-                ? `Final order. ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
-                : `Projected order. ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}
-            {" "}
-            {csvStatus} {prospectStatus} {standingsFile ? "" : standingsStatus}
-          </p>
+          {/* The draft settings screen skips the subtitle and data status. */}
+          {lottoPhase !== "draft" && (
+            <>
+              <p className="lottery-page-sub">
+                {cameForMockDraft
+                  ? `The mock draft starts from the lottery result, so the lottery comes first.`
+                  : `Sim the ${DRAFT_YEAR} NHL Draft Lottery, then run your own mock draft!`}
+              </p>
+              <p className="status-line">
+                {standingsFile?.provisional
+                  ? `Projected order, seeded from last season's final standings. ${SEASON_LABEL} season not yet underway.`
+                  : seasonComplete
+                    ? `Final order. ${SEASON_LABEL} regular season complete.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`
+                    : `Projected order. ${SEASON_LABEL} season in progress.${standingsFile?.updated ? ` Standings last updated ${new Date(standingsFile.updated).toLocaleString()}.` : ""}`}{" "}
+                {csvStatus} {prospectStatus} {standingsFile ? "" : standingsStatus}
+              </p>
+            </>
+          )}
         </>
       )}
 
@@ -1699,42 +1704,39 @@ export default function LotteryPage() {
       )}
 
       {lottoPhase === "draft" && !roundsSelected && (
-        <div className="round-select-card">
-          <h2>How many rounds?</h2>
-          <div className="btn-row">
-            <button
-              className="btn"
-              onClick={() => {
-                setMockRounds(1);
-                setRoundsSelected(true);
-                setCurrentRound(1);
-              }}
-            >
-              1 Round
-            </button>
-            <button
-              className="btn btn-outline"
-              onClick={() => {
-                setMockRounds(2);
-                setRoundsSelected(true);
-                setCurrentRound(1);
-              }}
-            >
-              2 Rounds
-            </button>
-          </div>
-        </div>
+        <DraftSettings
+          rounds={mockRounds}
+          onRoundsChange={setMockRounds}
+          teams={settingsTeams}
+          controlledTeams={controlledTeams}
+          onControlledTeamsChange={setControlledTeams}
+          timerEnabled={timerEnabled}
+          onTimerEnabledChange={setTimerEnabled}
+          timerSeconds={timerSeconds}
+          onTimerSecondsChange={setTimerSeconds}
+          onStart={() => {
+            setRoundsSelected(true);
+            setCurrentRound(1);
+          }}
+        />
       )}
 
       {lottoPhase === "draft" && roundsSelected && currentRound === 1 && (
-        <div>
-          <div className="draft-toolbar">
-            <h2 className="page-title" style={{ fontSize: "1.6rem" }}>
-              {DRAFT_YEAR} Mock Draft - Round 1
-            </h2>
-            <div className="btn-row">
+        <DraftRoom
+          title={`${DRAFT_YEAR} Mock Draft · Round 1`}
+          picks={draftPicks}
+          isOnClock={(idx) => idx === currentPickIdx && !isDraftDone}
+          onClockPick={isDraftDone ? undefined : curPick}
+          isComplete={isDraftDone}
+          completeTitle="Round 1 Complete"
+          completeText="All 32 picks have been made."
+          actions={
+            <>
               <button className="btn btn-outline" onClick={() => setLottoPhase("lottery")}>
                 Back to Lottery
+              </button>
+              <button className="btn btn-outline" onClick={autoPick} disabled={draftActionDisabled}>
+                Auto-Pick Next
               </button>
               <button className="btn" onClick={autoPickAll} disabled={draftActionDisabled}>
                 Auto-Pick All
@@ -1764,145 +1766,48 @@ export default function LotteryPage() {
               <button className="btn btn-danger" onClick={resetLottery}>
                 New Simulation
               </button>
-            </div>
-          </div>
-
-          <div className="draft-layout">
-            <div className="draft-board">
-              {draftPicks.map((pick, idx) => {
-                const onClock = idx === currentPickIdx && !isDraftDone;
-                return (
-                  <div key={`${pick.pick}-${pick.team}`} className={`pick-row${onClock ? " on-clock" : ""}`}>
-                    <div className="pick-number">{pick.pick}</div>
-                    <div>
-                      {onClock && <div className="on-clock-label">On the clock</div>}
-                      <TradedPickTeam team={pick.team} note={pick.note} />
-                      {pick.player ? (
-                        <div className="pick-player">
-                          {pick.player.name}
-                          {formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}
-                        </div>
-                      ) : (
-                        <div className="pick-player" style={{ fontStyle: "italic" }}>
-                          -
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div>
-              {!isDraftDone ? (
-                <div className="prospect-panel">
-                  <div className="prospect-panel-title">Available Prospects</div>
-                  <div className="on-clock-card">
-                    <div className="result-pick-label">Pick #{curPick?.pick}</div>
-                    <div className="team-name">{curPick?.team}</div>
-                  </div>
-                  <button
-                    className="btn"
-                    onClick={makePick}
-                    disabled={!selectedProspect || draftActionDisabled}
-                    style={{ width: "100%" }}
-                  >
-                    {selectedProspect && !draftActionDisabled ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-                  </button>
-                  <button className="btn btn-outline" onClick={autoPick} disabled={draftActionDisabled}>
-                    Auto-Pick Next
-                  </button>
-                  <input
-                    className="form-input"
-                    placeholder="Search prospects"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setSelectedProspect(null);
-                    }}
-                    disabled={draftActionDisabled}
-                  />
-                  <select
-                    className="form-input"
-                    value={positionFilter}
-                    onChange={(e) => {
-                      setPositionFilter(e.target.value as ProspectPositionFilter);
-                      setSelectedProspect(null);
-                    }}
-                    disabled={draftActionDisabled}
-                  >
-                    <option value="all">All Positions</option>
-                    <option value="centers">Centers</option>
-                    <option value="wingers">Wingers</option>
-                    <option value="forwards">Forwards</option>
-                    <option value="defense">Defense</option>
-                    <option value="goalies">Goalies</option>
-                  </select>
-                  <div className="prospect-list">
-                    {filteredProspects.map((prospect) => (
-                      <div
-                        key={prospect.rank}
-                        className={`prospect-row${selectedProspect?.rank === prospect.rank ? " selected" : ""}`}
-                        onClick={() => {
-                          if (!draftActionDisabled && !takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
-                        }}
-                      >
-                        <span className="prospect-rank">#{prospect.rank}</span>
-                        <strong>{prospect.name}</strong>
-                        <div className="prospect-meta">{formatProspectMeta(prospect)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="complete-card">
-                  <h2>Round 1 Complete</h2>
-                  <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-5)" }}>
-                    All 32 picks have been made.
-                  </p>
-                  <div className="btn-row">
-                    <button className="btn btn-outline" onClick={copyResults}>
-                      {copyLabel}
-                    </button>
-                    <button className="btn btn-outline" onClick={saveDraft}>
-                      Save Draft
-                    </button>
-                    {mockRounds === 2 && (
-                      <button className="btn" onClick={() => setCurrentRound(2)}>
-                        Continue to Round 2
-                      </button>
-                    )}
-                    {mockRounds === 1 && (
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => {
-                          setMockRounds(2);
-                          setCurrentRound(2);
-                        }}
-                      >
-                        Add Round 2
-                      </button>
-                    )}
-                    <button className="btn btn-danger" onClick={resetLottery}>
-                      New Simulation
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          teamPicks={[...draftPicks, ...(mockRounds === 2 ? round2Picks.filter((p) => !p.forfeited) : [])].filter(
+            (p) => p.team === curPick?.team
+          )}
+          prospects={filteredProspects}
+          matchingProspects={matchingProspects}
+          draftedBy={draftedBy}
+          search={search}
+          onSearchChange={setSearch}
+          positionFilter={positionFilter}
+          onPositionFilterChange={setPositionFilter}
+          controlsDisabled={draftActionDisabled}
+          onDraftProspect={(prospect) => safelyAssignPicks("manual", prospect)}
+          draftDisabled={draftActionDisabled}
+          isUserPick={userOnClock}
+          clockSecondsLeft={clockSecondsLeft}
+        />
       )}
 
       {lottoPhase === "draft" && roundsSelected && currentRound === 2 && (
-        <div>
-          <div className="draft-toolbar">
-            <h2 className="page-title" style={{ fontSize: "1.6rem" }}>
-              {DRAFT_YEAR} Mock Draft - Round 2
-            </h2>
-            <div className="btn-row">
+        <DraftRoom
+          title={`${DRAFT_YEAR} Mock Draft · Round 2`}
+          picks={round2Picks}
+          isOnClock={(idx) =>
+            idx === round2PickIdx && !round2Picks[idx].forfeited && !round2Picks.every((p) => p.player || p.forfeited)
+          }
+          onClockPick={round2Picks.every((p) => p.player || p.forfeited) ? undefined : round2Picks[round2PickIdx]}
+          isComplete={round2Picks.every((p) => p.player || p.forfeited)}
+          completeTitle="Draft Complete"
+          completeText="All picks have been made."
+          actions={
+            <>
               <button className="btn btn-outline" onClick={() => setCurrentRound(1)}>
                 Back to Round 1
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => safelyAssignRound2Picks("auto-next")}
+                disabled={round2Picks.every((p) => p.player || p.forfeited)}
+              >
+                Auto-Pick Next
               </button>
               <button
                 className="btn"
@@ -1920,135 +1825,24 @@ export default function LotteryPage() {
               <button className="btn btn-danger" onClick={resetLottery}>
                 New Simulation
               </button>
-            </div>
-          </div>
-
-          <div className="draft-layout">
-            <div className="draft-board">
-              {round2Picks.map((pick, idx) => {
-                const onClock = idx === round2PickIdx && !pick.forfeited && !round2Picks.every((p) => p.player || p.forfeited);
-                return (
-                  <div
-                    key={`r2-${pick.pick}`}
-                    className={`pick-row${pick.forfeited ? " forfeited" : ""}${onClock ? " on-clock" : ""}`}
-                  >
-                    <div className="pick-number">{pick.pick}</div>
-                    <div>
-                      {onClock && <div className="on-clock-label">On the clock</div>}
-                      {pick.forfeited ? (
-                        <>
-                          <div>Forfeited</div>
-                          <div className="pick-note">{pick.note}</div>
-                        </>
-                      ) : (
-                        <>
-                          <TradedPickTeam team={pick.team} note={pick.note} />
-                          {pick.player ? (
-                            <div className="pick-player">
-                              {pick.player.name}
-                              {formatProspectMeta(pick.player) ? ` (${formatProspectMeta(pick.player)})` : ""}
-                            </div>
-                          ) : (
-                            <div className="pick-player" style={{ fontStyle: "italic" }}>
-                              -
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div>
-              {!round2Picks.every((p) => p.player || p.forfeited) ? (
-                <div className="prospect-panel">
-                  <div className="prospect-panel-title">Available Prospects</div>
-                  {(() => {
-                    const curR2Pick = round2Picks[round2PickIdx];
-                    return (
-                      <>
-                        <div className="on-clock-card">
-                          <div className="result-pick-label">Pick #{curR2Pick?.pick}</div>
-                          <div className="team-name">{curR2Pick?.team}</div>
-                        </div>
-                        <button
-                          className="btn"
-                          style={{ width: "100%" }}
-                          onClick={() => safelyAssignRound2Picks("manual", selectedProspect)}
-                          disabled={!selectedProspect}
-                        >
-                          {selectedProspect ? `Draft ${selectedProspect.name}` : "Select a Prospect"}
-                        </button>
-                        <button className="btn btn-outline" onClick={() => safelyAssignRound2Picks("auto-next")}>
-                          Auto-Pick Next
-                        </button>
-                        <input
-                          className="form-input"
-                          placeholder="Search prospects"
-                          value={search}
-                          onChange={(e) => {
-                            setSearch(e.target.value);
-                            setSelectedProspect(null);
-                          }}
-                        />
-                        <select
-                          className="form-input"
-                          value={positionFilter}
-                          onChange={(e) => {
-                            setPositionFilter(e.target.value as ProspectPositionFilter);
-                            setSelectedProspect(null);
-                          }}
-                        >
-                          <option value="all">All Positions</option>
-                          <option value="centers">Centers</option>
-                          <option value="wingers">Wingers</option>
-                          <option value="forwards">Forwards</option>
-                          <option value="defense">Defense</option>
-                          <option value="goalies">Goalies</option>
-                        </select>
-                        <div className="prospect-list">
-                          {filteredProspects.map((prospect) => (
-                            <div
-                              key={prospect.rank}
-                              className={`prospect-row${selectedProspect?.rank === prospect.rank ? " selected" : ""}`}
-                              onClick={() => {
-                                if (!takenProspects.has(prospect.rank)) setSelectedProspect(prospect);
-                              }}
-                            >
-                              <span className="prospect-rank">#{prospect.rank}</span>
-                              <strong>{prospect.name}</strong>
-                              <div className="prospect-meta">{formatProspectMeta(prospect)}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div className="complete-card">
-                  <h2>Draft Complete</h2>
-                  <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-5)" }}>
-                    All picks have been made.
-                  </p>
-                  <div className="btn-row">
-                    <button className="btn btn-outline" onClick={copyResults}>
-                      {copyLabel}
-                    </button>
-                    <button className="btn btn-outline" onClick={saveDraft}>
-                      Save Draft
-                    </button>
-                    <button className="btn btn-danger" onClick={resetLottery}>
-                      New Simulation
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          teamPicks={[...draftPicks, ...round2Picks.filter((p) => !p.forfeited)].filter(
+            (p) => p.team === round2Picks[round2PickIdx]?.team
+          )}
+          prospects={filteredProspects}
+          matchingProspects={matchingProspects}
+          draftedBy={draftedBy}
+          search={search}
+          onSearchChange={setSearch}
+          positionFilter={positionFilter}
+          onPositionFilterChange={setPositionFilter}
+          controlsDisabled={false}
+          onDraftProspect={(prospect) => safelyAssignRound2Picks("manual", prospect)}
+          draftDisabled={false}
+          isUserPick={userOnClock}
+          clockSecondsLeft={clockSecondsLeft}
+        />
       )}
 
       {saveViewHtml !== null && (
