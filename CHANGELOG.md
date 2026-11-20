@@ -13,6 +13,12 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.12.1 - 2026-11-20
+- Prospect rankings combined with a second ranking list: 89 players, hand-set
+  top 20, the rest by average rank across both lists. Leagues and teams
+  updated to this season (e.g. DuPont at Michigan/NCAA); 9 new players added
+  with Elite Prospects links.
+
 ## 2.12.0 - 2026-11-20
 - Draft order (lottery pool and picks 17-32) is ranked by points percentage
   instead of raw points, so teams that have played more or fewer games are
