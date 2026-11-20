@@ -13,6 +13,11 @@ here. Automated standings updates (`chore: update standings`) do not.
 
 Versions before 2.5.0 were assigned retroactively from the commit history.
 
+## 2.12.0 - 2026-11-20
+- Draft order (lottery pool and picks 17-32) is ranked by points percentage
+  instead of raw points, so teams that have played more or fewer games are
+  compared fairly mid-season. Same order once the season is complete.
+
 ## 2.11.0 - 2026-10-20
 - When a computer-controlled team has the first pick, the draft room opens
   paused with a Start Draft button, so you can look over the board and set

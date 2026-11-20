@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computePlayoffField, getLotteryPool, sortTeamsWorstFirst, type TeamStanding } from "../standings";
+import {
+  compareDraftOrderWorstFirst,
+  computePlayoffField,
+  getLotteryPool,
+  sortTeamsWorstFirst,
+  type TeamStanding,
+} from "../standings";
 
 // Points default to a derivation from pointPctg (at a fixed 10 GP) so existing
 // fixtures written in terms of pointPctg still produce the matching points
@@ -82,8 +88,8 @@ describe("sortTeamsWorstFirst", () => {
   });
 
   it("ranks a team that has played and lost below a team that hasn't played yet (both tied at 0 points)", () => {
-    const playedAndLost = team({ abbrev: "LOSER", gamesPlayed: 1, points: 0 });
-    const hasntPlayed = team({ abbrev: "UNPLAYED", gamesPlayed: 0, points: 0 });
+    const playedAndLost = team({ abbrev: "LOSER", gamesPlayed: 1, points: 0, pointPctg: 0 });
+    const hasntPlayed = team({ abbrev: "UNPLAYED", gamesPlayed: 0, points: 0, pointPctg: 0 });
 
     // Real NHL rule: tied on points -> fewer games played is better, so the
     // 0-GP team ranks ahead of (better than) the team that's actually 0-1-0.
@@ -91,8 +97,8 @@ describe("sortTeamsWorstFirst", () => {
   });
 
   it("breaks an exact points tie by fewer games played before looking at RW/ROW/wins", () => {
-    const fewerGames = team({ abbrev: "FEWER", gamesPlayed: 5, points: 6, regulationWins: 0 });
-    const moreGames = team({ abbrev: "MORE", gamesPlayed: 8, points: 6, regulationWins: 3 });
+    const fewerGames = team({ abbrev: "FEWER", gamesPlayed: 5, points: 6, pointPctg: 0.6, regulationWins: 0 });
+    const moreGames = team({ abbrev: "MORE", gamesPlayed: 8, points: 6, pointPctg: 0.375, regulationWins: 3 });
 
     // Even though MORE has more regulation wins, it took more games to get the
     // same points total, so by the official tiebreaker it ranks worse.
@@ -105,8 +111,8 @@ describe("sortTeamsWorstFirst", () => {
     // points directly - percentage only matters as an explanatory tiebreak
     // when points are tied - so A (8 pts) is worse than B (10 pts) here even
     // though B's points percentage is higher.
-    const a = team({ abbrev: "A", gamesPlayed: 20, points: 8 });
-    const b = team({ abbrev: "B", gamesPlayed: 10, points: 10 });
+    const a = team({ abbrev: "A", gamesPlayed: 20, points: 8, pointPctg: 0.2 });
+    const b = team({ abbrev: "B", gamesPlayed: 10, points: 10, pointPctg: 0.5 });
 
     expect(sortTeamsWorstFirst([b, a]).map((t) => t.abbrev)).toEqual(["A", "B"]);
   });
@@ -121,6 +127,49 @@ describe("sortTeamsWorstFirst", () => {
     const betterGf = team({ abbrev: "BETTER_GF", points: 10, gamesPlayed: 10, goalDifferential: 0, goalsFor: 25 });
 
     expect(sortTeamsWorstFirst([betterGf, worseGf]).map((t) => t.abbrev)).toEqual(["WORSE_GF", "BETTER_GF"]);
+  });
+});
+
+describe("compareDraftOrderWorstFirst (draft order)", () => {
+  const draftOrder = (teams: TeamStanding[]) => [...teams].sort(compareDraftOrderWorstFirst).map((t) => t.abbrev);
+
+  it("ranks mid-season by points percentage, not raw points", () => {
+    // A: 10 pts in 12 GP (.417). B: 9 pts in 8 GP (.563). By points B looks
+    // worse; by points % A is the worse team.
+    const a = team({ abbrev: "A", gamesPlayed: 12, points: 10, pointPctg: 0.4167 });
+    const b = team({ abbrev: "B", gamesPlayed: 8, points: 9, pointPctg: 0.5625 });
+
+    expect(sortTeamsWorstFirst([a, b]).map((t) => t.abbrev)).toEqual(["B", "A"]);
+    expect(draftOrder([a, b])).toEqual(["A", "B"]);
+  });
+
+  it("gives the same order as raw points once every team has played the same number of games", () => {
+    const teams = [
+      team({ abbrev: "A", gamesPlayed: 82, points: 70, pointPctg: 0.4268, regulationWins: 25 }),
+      team({ abbrev: "B", gamesPlayed: 82, points: 64, pointPctg: 0.3902, regulationWins: 22 }),
+      team({ abbrev: "C", gamesPlayed: 82, points: 70, pointPctg: 0.4268, regulationWins: 21 }),
+      team({ abbrev: "D", gamesPlayed: 82, points: 91, pointPctg: 0.5549, regulationWins: 38 }),
+    ];
+
+    expect(draftOrder(teams)).toEqual(sortTeamsWorstFirst(teams).map((t) => t.abbrev));
+  });
+
+  it("still ranks a team that has played and lost below a team that hasn't played yet", () => {
+    const playedAndLost = team({ abbrev: "LOSER", gamesPlayed: 1, points: 0, pointPctg: 0 });
+    const hasntPlayed = team({ abbrev: "UNPLAYED", gamesPlayed: 0, points: 0, pointPctg: 0 });
+
+    expect(draftOrder([hasntPlayed, playedAndLost])).toEqual(["LOSER", "UNPLAYED"]);
+  });
+
+  it("breaks a points % tie on fewer games played, then regulation wins", () => {
+    // Both .500: MORE took more games to get there.
+    const fewer = team({ abbrev: "FEWER", gamesPlayed: 10, points: 10, pointPctg: 0.5 });
+    const more = team({ abbrev: "MORE", gamesPlayed: 12, points: 12, pointPctg: 0.5 });
+    expect(draftOrder([fewer, more])).toEqual(["MORE", "FEWER"]);
+
+    const lowRw = team({ abbrev: "LOW_RW", gamesPlayed: 10, points: 10, pointPctg: 0.5, regulationWins: 2 });
+    const highRw = team({ abbrev: "HIGH_RW", gamesPlayed: 10, points: 10, pointPctg: 0.5, regulationWins: 4 });
+    expect(draftOrder([highRw, lowRw])).toEqual(["LOW_RW", "HIGH_RW"]);
   });
 });
 
@@ -240,5 +289,15 @@ describe("getLotteryPool", () => {
     for (let i = 1; i < lotteryTeams.length; i++) {
       expect(lotteryTeams[i].pointPctg).toBeGreaterThanOrEqual(lotteryTeams[i - 1].pointPctg);
     }
+  });
+
+  it("orders the lottery pool by points percentage when teams have played different numbers of games", () => {
+    const teams = [
+      team({ abbrev: "MANY_GP", gamesPlayed: 20, points: 18, pointPctg: 0.45, inPlayoffs: false }), // .450
+      team({ abbrev: "FEW_GP", gamesPlayed: 14, points: 15, pointPctg: 0.5357, inPlayoffs: false }), // .536
+      team({ abbrev: "MID", gamesPlayed: 17, points: 16, pointPctg: 0.4706, inPlayoffs: false }), // .471
+    ];
+
+    expect(getLotteryPool(teams).lotteryTeams.map((t) => t.abbrev)).toEqual(["MANY_GP", "MID", "FEW_GP"]);
   });
 });

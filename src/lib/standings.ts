@@ -60,6 +60,31 @@ export function sortTeamsWorstFirst(teams: TeamStanding[]): TeamStanding[] {
   return [...teams].sort(compareWorstFirst);
 }
 
+/**
+ * Worst-first comparator for the draft order: points percentage first, so a
+ * team isn't ranked better or worse mid-season just for having played fewer
+ * or more games. Once every team has played the full schedule this gives the
+ * same order as raw points. Ties then fall back to the standings chain:
+ * fewer games played ranks better (so a team that has lost every game it
+ * played ranks below one that hasn't played yet), then RW, ROW, total wins,
+ * goal differential and goals for.
+ *
+ * Playoff qualification ("if the playoffs started today") deliberately stays
+ * on compareWorstFirst, since that's how the NHL's own standings rank it.
+ */
+export function compareDraftOrderWorstFirst(a: TeamStanding, b: TeamStanding): number {
+  return (
+    a.pointPctg - b.pointPctg ||
+    b.gamesPlayed - a.gamesPlayed ||
+    a.regulationWins - b.regulationWins ||
+    a.row - b.row ||
+    a.wins - b.wins ||
+    a.goalDifferential - b.goalDifferential ||
+    a.goalsFor - b.goalsFor ||
+    a.name.localeCompare(b.name)
+  );
+}
+
 /** True once every team has played out its full schedule (final standings). */
 export function isSeasonComplete(teams: TeamStanding[], gamesInSeason: number): boolean {
   return teams.length > 0 && teams.every((t) => t.gamesPlayed >= gamesInSeason);
@@ -111,7 +136,8 @@ export function computePlayoffField(teams: TeamStanding[]): TeamStanding[] {
 
 /**
  * Splits teams into the lottery-eligible pool (inPlayoffs = false) and the
- * rest, each worst-first. Membership comes entirely from each team's
+ * rest, each worst-first in draft order (by points percentage - see
+ * compareDraftOrderWorstFirst). Membership comes entirely from each team's
  * inPlayoffs flag - "if the playoffs started today," recomputed on every
  * standings update - so this needs no season-complete branch: once the
  * season actually ends, the flags are simply final.
@@ -120,7 +146,7 @@ export function getLotteryPool(teams: TeamStanding[]): {
   lotteryTeams: TeamStanding[];
   otherTeams: TeamStanding[];
 } {
-  const worstFirst = sortTeamsWorstFirst(teams);
+  const worstFirst = [...teams].sort(compareDraftOrderWorstFirst);
 
   return {
     lotteryTeams: worstFirst.filter((t) => !t.inPlayoffs),
